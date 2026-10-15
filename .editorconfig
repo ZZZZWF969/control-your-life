@@ -1,0 +1,19 @@
+# 编辑器统一配置：全工程使用 tab 缩进（制表符宽度 4）
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+
+[*.kt]
+indent_style = tab
+indent_size = 4
+
+[*.{kts,toml}]
+indent_style = tab
+indent_size = 4
+
+[*.{xml,md}]
+indent_style = tab
+indent_size = 4

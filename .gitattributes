@@ -1,0 +1,11 @@
+# 统一换行符策略：仓库内一律 LF，Windows 检出时 bat 除外
+* text=auto eol=lf
+
+# Windows 批处理必须 CRLF
+*.bat text eol=crlf
+
+# 二进制文件不做任何转换
+*.png binary
+*.jar binary
+*.webp binary
+*.mp4 binary

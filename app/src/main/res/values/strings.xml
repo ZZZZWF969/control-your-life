@@ -1,0 +1,25 @@
+<resources>
+	<string name="app_name">每日掌控</string>
+	<string name="channel_general_name">常规提醒</string>
+
+	<string name="tab_today">今日</string>
+	<string name="tab_record">记录</string>
+	<string name="tab_remind">提醒</string>
+	<string name="tab_ai">AI</string>
+	<string name="tab_settings">设置</string>
+
+	<string name="placeholder_today_desc">今日概览：汇总当天饮食、运动与待办完成情况（第二阶段实现）</string>
+	<string name="placeholder_record_desc">饮食与运动的手动记录入口（第二阶段实现）</string>
+	<string name="placeholder_remind_desc">提醒规则与闹钟管理（第三阶段实现）</string>
+	<string name="placeholder_ai_desc">AI 生活建议与每日报告（第四阶段实现）</string>
+
+	<string name="settings_desc">此页将承载提醒时间、AI 接口、背单词目标等配置；当前提供链路自检工具</string>
+	<string name="settings_section_diag">链路自检</string>
+	<string name="settings_send_test_notify">发送测试通知</string>
+	<string name="settings_notify_no_permission">尚未授权通知权限，点击按钮会先弹出授权请求</string>
+	<string name="settings_db_check">数据库自检</string>
+	<string name="settings_db_check_result">自检通过：当前饮食记录 %1$d 条、运动记录 %2$d 条（每次自检各写入一条样例）</string>
+
+	<string name="test_notify_title">每日掌控·测试通知</string>
+	<string name="test_notify_text">如果你能看到这条通知，说明通知链路畅通。</string>
+</resources>

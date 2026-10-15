@@ -1,0 +1,4 @@
+<resources>
+	<!-- 界面由 Compose 绘制，这里只提供一个无标题栏的基础窗口主题 -->
+	<style name="Theme.DailyControl" parent="android:Theme.Material.Light.NoActionBar" />
+</resources>
