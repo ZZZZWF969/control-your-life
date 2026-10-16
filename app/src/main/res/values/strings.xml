@@ -1,6 +1,26 @@
 <resources>
 	<string name="app_name">每日掌控</string>
 	<string name="channel_general_name">常规提醒</string>
+	<string name="channel_meal_name">三餐询问</string>
+	<string name="channel_word_name">背单词</string>
+	<string name="channel_plan_name">晚间规划</string>
+	<string name="channel_todo_name">待办提醒</string>
+
+	<!-- 设置页·提醒与调试 -->
+	<string name="settings_section_reminder">提醒时间</string>
+	<string name="reminder_breakfast">早餐询问</string>
+	<string name="reminder_lunch">午餐询问</string>
+	<string name="reminder_dinner">晚餐询问</string>
+	<string name="reminder_plan">晚间规划</string>
+	<string name="settings_section_launch">跳转应用</string>
+	<string name="vocab_package_label">背单词应用包名</string>
+	<string name="vocab_package_hint">留空表示未配置；真机联调时会自动读取并填入</string>
+	<string name="settings_create_test_todo">创建三分钟后的测试待办</string>
+	<string name="test_todo_scheduled">测试待办已排程，3 分钟后提醒</string>
+	<string name="test_todo_title">测试待办</string>
+	<string name="test_todo_text">这是三分钟前排下的测试提醒，点击返回应用。</string>
+	<string name="exact_alarm_denied">精确闹钟权限未授予，提醒时刻可能有几分钟漂移</string>
+	<string name="exact_alarm_grant">去授权</string>
 
 	<string name="tab_today">今日</string>
 	<string name="tab_record">记录</string>

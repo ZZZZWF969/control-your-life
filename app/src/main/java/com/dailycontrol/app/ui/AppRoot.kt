@@ -14,6 +14,7 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -44,12 +45,25 @@ private val navDestinations = listOf(
 	NavDestination("settings", Icons.Filled.Settings, R.string.tab_settings)
 )
 
-// 应用根组件：底部导航栏 + 各页面容器
+// 应用根组件：底部导航栏 + 各页面容器；pendingRoute 用于消费通知深链的导航请求
 @Composable
-fun DailyControlAppRoot() {
+fun DailyControlAppRoot(
+	pendingRoute: String? = null,
+	onRouteConsumed: () -> Unit = {}
+) {
 	val navController = rememberNavController()
 	val backStackEntry by navController.currentBackStackEntryAsState()
 	val currentRoute = backStackEntry?.destination?.route
+
+	// 深链消费：通知带来的路由请求执行一次即清空
+	LaunchedEffect(pendingRoute) {
+		pendingRoute?.let { route ->
+			navController.navigate(route) {
+				launchSingleTop = true
+			}
+			onRouteConsumed()
+		}
+	}
 
 	Scaffold(
 		bottomBar = {

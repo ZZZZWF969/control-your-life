@@ -11,10 +11,11 @@ import androidx.core.content.ContextCompat
 import com.dailycontrol.app.MainActivity
 import com.dailycontrol.app.R
 
-// 通知发送的统一入口：界面层只调用这里，不直接拼装 Notification
+// 通知发送的统一入口：界面层与调度层只调用这里，不直接拼装 Notification
 object Notifier {
 
 	const val NOTIFY_ID_TEST = 1
+	const val NOTIFY_ID_TODO_TEST = 9001
 
 	// 检查是否已获得安卓 13+ 的通知运行时权限
 	fun hasPostPermission(context: Context): Boolean {
@@ -27,19 +28,41 @@ object Notifier {
 		if (!hasPostPermission(context)) {
 			return
 		}
-		val tapIntent = PendingIntent.getActivity(
-			context,
-			0,
-			Intent(context, MainActivity::class.java),
-			PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
-		)
 		val notification = NotificationCompat.Builder(context, NotifyChannels.GENERAL_ID)
 			.setSmallIcon(R.drawable.ic_stat_dailycontrol)
 			.setContentTitle(context.getString(R.string.test_notify_title))
 			.setContentText(context.getString(R.string.test_notify_text))
-			.setContentIntent(tapIntent)
+			.setContentIntent(buildTapIntent(context, MainActivity.ROUTE_TODAY, NOTIFY_ID_TEST))
 			.setAutoCancel(true)
 			.build()
 		NotificationManagerCompat.from(context).notify(NOTIFY_ID_TEST, notification)
+	}
+
+	// 测试待办提醒：验证「排程 → 系统闹钟触发 → 通知 → 点击深链回应用」全链路
+	fun sendTodoNotification(context: Context) {
+		if (!hasPostPermission(context)) {
+			return
+		}
+		val notification = NotificationCompat.Builder(context, NotifyChannels.TODO_ID)
+			.setSmallIcon(R.drawable.ic_stat_dailycontrol)
+			.setContentTitle(context.getString(R.string.test_todo_title))
+			.setContentText(context.getString(R.string.test_todo_text))
+			.setContentIntent(buildTapIntent(context, MainActivity.ROUTE_TODAY, NOTIFY_ID_TODO_TEST))
+			.setAutoCancel(true)
+			.build()
+		NotificationManagerCompat.from(context).notify(NOTIFY_ID_TODO_TEST, notification)
+	}
+
+	// 通知点击意图：带导航路由参数，由 MainActivity 解析后转发给应用内导航
+	private fun buildTapIntent(context: Context, route: String, notifyId: Int): PendingIntent {
+		val intent = Intent(context, MainActivity::class.java)
+			.putExtra(MainActivity.EXTRA_ROUTE, route)
+			.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+		return PendingIntent.getActivity(
+			context,
+			notifyId,
+			intent,
+			PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+		)
 	}
 }

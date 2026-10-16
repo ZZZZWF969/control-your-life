@@ -48,3 +48,18 @@
 ## 8. 首次构建需联网下载依赖
 
 - 约几百 MB（Gradle 发行版 + AGP + AndroidX）。当前全部已入本机缓存；若换机器/清缓存需重新下载，届时按第 4 条走镜像。
+
+## 9. dumpsys notification 的 grep 中文匹配不可靠
+
+- **症状**：`dumpsys notification --noredact | grep 测试待办` 计数为 0，但通知实际已在通知栏。
+- **规避**：验证通知是否到达，用 `cmd statusbar expand-notifications` + uiautomator dump（或截图），不要信 dumpsys 的中文 grep。
+
+## 10. 模拟器测试定时提醒会被 Doze/App Standby 延迟
+
+- **症状**：应用退后台数分钟后，排好的闹钟到点不触发（广播被系统延迟到解冻）。
+- **规避**：测试定时提醒前执行 `adb shell dumpsys deviceidle disable` + `adb shell am set-standby-bucket com.dailycontrol.app active`。真机上对应解法就是权限清单里的「电池无限制」。
+
+## 11. 精确闹钟权限默认未授予（Android 14+ 模拟器与真机 alike）
+
+- **症状**：dumpsys alarm 显示 window=+1h（退化为窗口闹钟，触发可漂移）。
+- **规避**：应用内设置页有「去授权」入口；模拟器上可直接 `adb shell appops set com.dailycontrol.app SCHEDULE_EXACT_ALARM allow`，授权后 window=0 准点。
