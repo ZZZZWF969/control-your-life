@@ -13,3 +13,4 @@ app/build/
 docs/screenshots/
 # ZCode 会话目录
 .zcode/
+build-log.txt

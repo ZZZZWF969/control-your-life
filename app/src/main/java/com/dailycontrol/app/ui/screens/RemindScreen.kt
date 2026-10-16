@@ -1,5 +1,7 @@
 package com.dailycontrol.app.ui.screens
 
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import com.dailycontrol.app.R
@@ -8,6 +10,7 @@ import com.dailycontrol.app.R
 @Composable
 fun RemindScreen() {
 	PlaceholderPage(
+		icon = Icons.Filled.Notifications,
 		title = stringResource(R.string.tab_remind),
 		description = stringResource(R.string.placeholder_remind_desc)
 	)
