@@ -79,7 +79,13 @@ fun DailyControlAppRoot() {
 			startDestination = "today",
 			modifier = Modifier.padding(innerPadding)
 		) {
-			composable("today") { TodayScreen() }
+			composable("today") {
+				TodayScreen(onGoToRecord = {
+					navController.navigate("record") {
+						launchSingleTop = true
+					}
+				})
+			}
 			composable("record") { RecordScreen() }
 			composable("remind") { RemindScreen() }
 			composable("ai") { AiScreen() }

@@ -11,9 +11,28 @@
 	<string name="placeholder_today_desc">今日概览：汇总当天饮食、运动与待办完成情况（第二阶段实现）</string>
 	<string name="placeholder_record_desc">饮食与运动的手动记录入口（第二阶段实现）</string>
 	<string name="placeholder_remind_desc">提醒规则与闹钟管理（第三阶段实现）</string>
+
+	<!-- 今日页 -->
+	<string name="greeting_morning">早上好</string>
+	<string name="greeting_noon">中午好</string>
+	<string name="greeting_afternoon">下午好</string>
+	<string name="greeting_evening">晚上好</string>
+	<string name="greeting_late">夜深了</string>
+	<string name="today_summary_exercise">今日运动</string>
+	<string name="today_exercise_minutes">%1$d 分钟</string>
+	<string name="today_exercise_none">暂无运动</string>
+	<string name="today_meal_missing">未记录</string>
+	<string name="today_section_diet">今日饮食</string>
+	<string name="today_section_exercise">今日运动</string>
+	<string name="today_empty_hint">今天还没有记录</string>
+	<string name="today_go_record">去记一笔</string>
 	<string name="placeholder_ai_desc">AI 生活建议与每日报告（第四阶段实现）</string>
 
-	<string name="settings_desc">此页将承载提醒时间、AI 接口、背单词目标等配置；当前提供链路自检工具</string>
+	<string name="settings_desc">此页将承载提醒时间、AI 接口、背单词目标等配置；当前提供外观与链路自检设置</string>
+	<string name="settings_section_appearance">外观</string>
+	<string name="theme_mode_system">跟随系统</string>
+	<string name="theme_mode_light">浅色</string>
+	<string name="theme_mode_dark">深色</string>
 	<string name="settings_section_diag">链路自检</string>
 	<string name="settings_send_test_notify">发送测试通知</string>
 	<string name="settings_notify_no_permission">尚未授权通知权限，点击按钮会先弹出授权请求</string>
@@ -22,4 +41,75 @@
 
 	<string name="test_notify_title">每日掌控·测试通知</string>
 	<string name="test_notify_text">如果你能看到这条通知，说明通知链路畅通。</string>
+
+	<!-- 记录页 -->
+	<string name="record_add_entry">记一笔</string>
+	<string name="record_choose_type">选择记录类型</string>
+	<string name="record_type_diet">记饮食</string>
+	<string name="record_type_diet_desc">三餐、零食或营养品</string>
+	<string name="record_type_exercise">记运动</string>
+	<string name="record_section_diet">饮食</string>
+	<string name="record_section_exercise">运动</string>
+	<string name="record_empty_diet">这一天还没有饮食记录，点右下角「记一笔」开始</string>
+	<string name="record_back_to_today">回今天</string>
+	<string name="record_prev_day">前一天</string>
+	<string name="record_next_day">后一天</string>
+	<string name="record_new_diet">记一笔·饮食</string>
+	<string name="record_edit_diet">编辑饮食记录</string>
+	<string name="diet_field_meal">餐别</string>
+	<string name="diet_field_food">食材内容</string>
+	<string name="diet_field_food_supplement">营养品名称</string>
+	<string name="diet_food_required">请填写食材内容</string>
+	<string name="diet_field_portion">饭量</string>
+	<string name="diet_field_weight">重量 / 容量</string>
+	<string name="diet_field_weight_hint">包装净含量或实际摄入量，如：30g、250ml</string>
+	<string name="diet_field_nutrient_rows">营养成分</string>
+	<string name="diet_nutrient_name">成分</string>
+	<string name="diet_nutrient_amount">含量</string>
+	<string name="diet_nutrient_add">添加成分</string>
+	<string name="diet_nutrient_remove">移除此行</string>
+	<string name="diet_field_time">进食时间</string>
+	<string name="portion_little">少</string>
+	<string name="portion_moderate">适中</string>
+	<string name="portion_much">多</string>
+	<string name="meal_breakfast">早餐</string>
+	<string name="meal_lunch">午餐</string>
+	<string name="meal_dinner">晚餐</string>
+	<string name="meal_snack">零食</string>
+	<string name="meal_supplement">营养品</string>
+	<string name="time_picker_title">选择时间</string>
+
+	<!-- 通用操作 -->
+	<string name="action_confirm">确定</string>
+	<string name="action_cancel">取消</string>
+	<string name="action_delete">删除</string>
+	<string name="action_save">保存</string>
+	<string name="confirm_delete_diet_title">删除饮食记录</string>
+	<string name="confirm_delete_diet_text">确定删除这条饮食记录吗？删除后无法恢复。</string>
+
+	<!-- 运动记录 -->
+	<string name="record_type_exercise_desc">跑步、骑行、力量训练等</string>
+	<string name="record_empty_exercise">这一天还没有运动记录，点右下角「记一笔」开始</string>
+	<string name="ex_new">记一笔·运动</string>
+	<string name="ex_edit">编辑运动记录</string>
+	<string name="ex_field_type">运动类型</string>
+	<string name="ex_type_run">跑步</string>
+	<string name="ex_type_ride">骑行</string>
+	<string name="ex_type_strength">力量</string>
+	<string name="ex_type_ball">球类</string>
+	<string name="ex_type_other">其他</string>
+	<string name="ex_field_custom_type">自定义类型，如：游泳</string>
+	<string name="ex_field_start">开始时间</string>
+	<string name="ex_field_end">结束时间</string>
+	<string name="ex_time_error">结束时间需要晚于开始时间</string>
+	<string name="ex_duration">时长</string>
+	<string name="ex_duration_unit">分钟</string>
+	<string name="ex_field_intensity">运动强度</string>
+	<string name="intensity_low">低</string>
+	<string name="intensity_mid">中</string>
+	<string name="intensity_high">高</string>
+	<string name="ex_field_total">运动总量</string>
+	<string name="ex_field_total_hint">如：5km、200个跳绳、3组×12</string>
+	<string name="confirm_delete_ex_title">删除运动记录</string>
+	<string name="confirm_delete_ex_text">确定删除这条运动记录吗？删除后无法恢复。</string>
 </resources>
