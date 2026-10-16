@@ -26,6 +26,13 @@ interface DietRecordDao {
 	@Query("SELECT COUNT(*) FROM diet_record")
 	suspend fun count(): Int
 
+	// 统计某天某餐别的记录数：三餐询问到点时判断「该餐是否已记录」
+	@Query(
+		"SELECT COUNT(*) FROM diet_record " +
+			"WHERE mealType = :mealType AND eatenAt BETWEEN :startMillis AND :endMillis"
+	)
+	suspend fun countBetween(mealType: String, startMillis: Long, endMillis: Long): Int
+
 	// 查询某天（时间区间内）的饮食记录及其营养素明细；返回 Flow 使界面在数据变化时自动刷新
 	@Transaction
 	@Query("SELECT * FROM diet_record WHERE eatenAt BETWEEN :startMillis AND :endMillis ORDER BY eatenAt ASC")

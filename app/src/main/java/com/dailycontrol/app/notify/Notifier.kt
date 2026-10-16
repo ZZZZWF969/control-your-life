@@ -10,12 +10,15 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import com.dailycontrol.app.MainActivity
 import com.dailycontrol.app.R
+import com.dailycontrol.app.data.entity.MealType
 
 // 通知发送的统一入口：界面层与调度层只调用这里，不直接拼装 Notification
 object Notifier {
 
 	const val NOTIFY_ID_TEST = 1
 	const val NOTIFY_ID_TODO_TEST = 9001
+	// 三餐询问通知 id：9002 起按餐别序号错开，避免互相覆盖
+	const val NOTIFY_ID_MEAL_BASE = 9002
 
 	// 检查是否已获得安卓 13+ 的通知运行时权限
 	fun hasPostPermission(context: Context): Boolean {
@@ -51,6 +54,29 @@ object Notifier {
 			.setAutoCancel(true)
 			.build()
 		NotificationManagerCompat.from(context).notify(NOTIFY_ID_TODO_TEST, notification)
+	}
+
+	// 三餐询问通知：点击深链到记录页并自动弹出该餐的预填表单
+	fun sendMealNotification(context: Context, mealType: MealType) {
+		if (!hasPostPermission(context)) {
+			return
+		}
+		val label = context.getString(mealType.labelRes)
+		val notification = NotificationCompat.Builder(context, NotifyChannels.MEAL_ID)
+			.setSmallIcon(R.drawable.ic_stat_dailycontrol)
+			.setContentTitle(context.getString(R.string.meal_notify_title, label))
+			.setContentText(context.getString(R.string.meal_notify_text, label))
+			.setContentIntent(
+				buildTapIntent(
+					context,
+					MainActivity.ROUTE_RECORD + "?meal=" + mealType.storageName,
+					NOTIFY_ID_MEAL_BASE + mealType.ordinal
+				)
+			)
+			.setAutoCancel(true)
+			.build()
+		NotificationManagerCompat.from(context)
+			.notify(NOTIFY_ID_MEAL_BASE + mealType.ordinal, notification)
 	}
 
 	// 通知点击意图：带导航路由参数，由 MainActivity 解析后转发给应用内导航

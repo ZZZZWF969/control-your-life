@@ -56,6 +56,7 @@ fun SettingsScreen() {
 	var dbCheckResult by remember { mutableStateOf<String?>(null) }
 	var notifyGranted by remember { mutableStateOf(Notifier.hasPostPermission(context)) }
 	var testTodoHint by remember { mutableStateOf(false) }
+	var simMealHint by remember { mutableStateOf(false) }
 
 	// 订阅持久化设置；用户操作后写入 DataStore，界面即时生效
 	val settings = SettingsRepository.get(context)
@@ -209,6 +210,26 @@ fun SettingsScreen() {
 		if (testTodoHint) {
 			Text(
 				text = stringResource(R.string.test_todo_scheduled),
+				style = MaterialTheme.typography.bodySmall,
+				color = MaterialTheme.colorScheme.onSurfaceVariant
+			)
+		}
+
+		// 1 分钟后模拟早餐询问：走与真实三餐闹钟完全相同的接收器分支，
+		// 用于验证「当天已记录则静默 / 未记录则询问」的两个分支
+		Button(onClick = {
+			simMealHint = true
+			ReminderScheduler.schedule(
+				context,
+				ReminderReason.MEAL_BREAKFAST,
+				System.currentTimeMillis() + 60_000L
+			)
+		}) {
+			Text(stringResource(R.string.settings_simulate_meal))
+		}
+		if (simMealHint) {
+			Text(
+				text = stringResource(R.string.sim_meal_scheduled),
 				style = MaterialTheme.typography.bodySmall,
 				color = MaterialTheme.colorScheme.onSurfaceVariant
 			)

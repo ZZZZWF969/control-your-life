@@ -19,10 +19,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.dailycontrol.app.R
 import com.dailycontrol.app.ui.screens.AiScreen
 import com.dailycontrol.app.ui.screens.RecordScreen
@@ -100,7 +102,19 @@ fun DailyControlAppRoot(
 					}
 				})
 			}
-			composable("record") { RecordScreen() }
+			// record 路由支持可选餐别参数：三餐询问通知深链 record?meal=breakfast 直接弹预填表单
+			composable(
+				route = "record?meal={meal}",
+				arguments = listOf(
+					navArgument("meal") {
+						type = NavType.StringType
+						nullable = true
+						defaultValue = null
+					}
+				)
+			) { entry ->
+				RecordScreen(initialMeal = entry.arguments?.getString("meal"))
+			}
 			composable("remind") { RemindScreen() }
 			composable("ai") { AiScreen() }
 			composable("settings") { SettingsScreen() }

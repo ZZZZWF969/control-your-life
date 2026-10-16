@@ -17,6 +17,10 @@
 	<string name="vocab_package_hint">留空表示未配置；真机联调时会自动读取并填入</string>
 	<string name="settings_create_test_todo">创建三分钟后的测试待办</string>
 	<string name="test_todo_scheduled">测试待办已排程，3 分钟后提醒</string>
+	<string name="settings_simulate_meal">1 分钟后模拟早餐询问</string>
+	<string name="sim_meal_scheduled">已排程，1 分钟后模拟触发早餐询问</string>
+	<string name="meal_notify_title">今天的%1$s还没记录</string>
+	<string name="meal_notify_text">点一下，30 秒记完今天的%1$s</string>
 	<string name="test_todo_title">测试待办</string>
 	<string name="test_todo_text">这是三分钟前排下的测试提醒，点击返回应用。</string>
 	<string name="exact_alarm_denied">精确闹钟权限未授予，提醒时刻可能有几分钟漂移</string>

@@ -27,6 +27,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -44,6 +45,7 @@ import com.dailycontrol.app.R
 import com.dailycontrol.app.data.db.DailyControlDatabase
 import com.dailycontrol.app.data.entity.DietRecord
 import com.dailycontrol.app.data.entity.ExerciseRecord
+import com.dailycontrol.app.data.entity.MealType
 import com.dailycontrol.app.data.entity.NutrientItem
 import com.dailycontrol.app.ui.components.ConfirmDialog
 import com.dailycontrol.app.ui.components.TypeBadge
@@ -52,9 +54,10 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 
 // 记录页：按日查看与管理饮食、运动记录，右下角「记一笔」新增
+// initialMeal：三餐询问通知深链带来的预选餐别，进入后自动弹出该餐表单
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RecordScreen() {
+fun RecordScreen(initialMeal: String? = null) {
 	val context = LocalContext.current
 	val scope = rememberCoroutineScope()
 	val db = remember { DailyControlDatabase.get(context) }
@@ -86,6 +89,17 @@ fun RecordScreen() {
 	var exerciseSheetRecord by remember { mutableStateOf<ExerciseRecord?>(null) }
 	var deleteTarget by remember { mutableStateOf<DietRecord?>(null) }
 	var exDeleteTarget by remember { mutableStateOf<ExerciseRecord?>(null) }
+
+	// 三餐询问通知深链：进入记录页自动弹出该餐的预填表单（每次深链仅触发一次）
+	var mealLinkConsumed by remember { mutableStateOf(false) }
+	LaunchedEffect(initialMeal) {
+		if (initialMeal != null && !mealLinkConsumed) {
+			dietSheetRecord = null
+			dietSheetItems = emptyList()
+			showDietSheet = true
+			mealLinkConsumed = true
+		}
+	}
 
 	Scaffold(
 		floatingActionButton = {
@@ -205,6 +219,7 @@ fun RecordScreen() {
 			initialRecord = dietSheetRecord,
 			initialItems = dietSheetItems,
 			date = selectedDate,
+			initialMealType = initialMeal?.let { MealType.fromStorage(it) },
 			onDismiss = { showDietSheet = false },
 			onSave = { record, nutrientItems ->
 				showDietSheet = false
