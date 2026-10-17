@@ -11,6 +11,8 @@ import androidx.core.content.ContextCompat
 import com.dailycontrol.app.MainActivity
 import com.dailycontrol.app.R
 import com.dailycontrol.app.data.entity.MealType
+import com.dailycontrol.app.data.settings.SettingsRepository
+import kotlinx.coroutines.flow.first
 
 // 通知发送的统一入口：界面层与调度层只调用这里，不直接拼装 Notification
 object Notifier {
@@ -19,6 +21,8 @@ object Notifier {
 	const val NOTIFY_ID_TODO_TEST = 9001
 	// 三餐询问通知 id：9002 起按餐别序号错开，避免互相覆盖
 	const val NOTIFY_ID_MEAL_BASE = 9002
+	// 背单词循环提醒通知 id（循环内覆盖同一条）
+	const val NOTIFY_ID_WORD = 9100
 
 	// 检查是否已获得安卓 13+ 的通知运行时权限
 	fun hasPostPermission(context: Context): Boolean {
@@ -77,6 +81,43 @@ object Notifier {
 			.build()
 		NotificationManagerCompat.from(context)
 			.notify(NOTIFY_ID_MEAL_BASE + mealType.ordinal, notification)
+	}
+
+	// 背单词循环提醒：通知栏只做「去背单词」快速入口（包名已配置且应用存在时）；
+	// 「今日已背」必须进应用确认（点击通知进提醒页），防止误触（2026-10-17 用户确认）
+	suspend fun sendVocabNotification(context: Context) {
+		if (!hasPostPermission(context)) {
+			return
+		}
+		val builder = NotificationCompat.Builder(context, NotifyChannels.WORD_ID)
+			.setSmallIcon(R.drawable.ic_stat_dailycontrol)
+			.setContentTitle(context.getString(R.string.vocab_notify_title))
+			.setContentText(context.getString(R.string.vocab_notify_text))
+			.setContentIntent(buildTapIntent(context, MainActivity.ROUTE_REMIND, NOTIFY_ID_WORD))
+			.setAutoCancel(true)
+
+		// 配置了跳转包名且设备上存在该应用时，追加「去背单词」动作
+		val packageName = SettingsRepository.get(context).vocabPackage.first()
+		if (packageName.isNotBlank()) {
+			val launchIntent = context.packageManager.getLaunchIntentForPackage(packageName)
+			if (launchIntent != null) {
+				builder.addAction(
+					0,
+					context.getString(R.string.vocab_action_go),
+					PendingIntent.getActivity(
+						context,
+						NOTIFY_ID_WORD + 1,
+						launchIntent,
+						PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+					)
+				)
+			}
+		}
+		NotificationManagerCompat.from(context).notify(NOTIFY_ID_WORD, builder.build())
+	}
+
+	fun cancelVocabNotification(context: Context) {
+		NotificationManagerCompat.from(context).cancel(NOTIFY_ID_WORD)
 	}
 
 	// 通知点击意图：带导航路由参数，由 MainActivity 解析后转发给应用内导航

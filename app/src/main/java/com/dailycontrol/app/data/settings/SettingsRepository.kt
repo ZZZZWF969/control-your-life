@@ -41,6 +41,11 @@ class SettingsRepository private constructor(private val context: Context) {
 		prefs[KEY_VOCAB_PACKAGE] ?: ""
 	}
 
+	// 背单词最近一次「今日已背」的确认日期（ISO 格式），与今天比对即得完成状态
+	val vocabDoneDate: Flow<String> = context.dataStore.data.map { prefs ->
+		prefs[KEY_VOCAB_DONE_DATE] ?: ""
+	}
+
 	suspend fun setThemeMode(mode: ThemeMode) {
 		context.dataStore.edit { prefs ->
 			prefs[KEY_THEME_MODE] = mode.storageName
@@ -67,6 +72,10 @@ class SettingsRepository private constructor(private val context: Context) {
 		context.dataStore.edit { it[KEY_VOCAB_PACKAGE] = packageName }
 	}
 
+	suspend fun setVocabDoneDate(dateIso: String) {
+		context.dataStore.edit { it[KEY_VOCAB_DONE_DATE] = dateIso }
+	}
+
 	companion object {
 		// DataStore 实例必须全局唯一，用顶层委托挂在 Context 上由系统保证
 		private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
@@ -77,6 +86,7 @@ class SettingsRepository private constructor(private val context: Context) {
 		private val KEY_DINNER_MINUTE = intPreferencesKey("dinner_minute")
 		private val KEY_PLAN_MINUTE = intPreferencesKey("plan_minute")
 		private val KEY_VOCAB_PACKAGE = stringPreferencesKey("vocab_package")
+		private val KEY_VOCAB_DONE_DATE = stringPreferencesKey("vocab_done_date")
 
 		@Volatile
 		private var instance: SettingsRepository? = null

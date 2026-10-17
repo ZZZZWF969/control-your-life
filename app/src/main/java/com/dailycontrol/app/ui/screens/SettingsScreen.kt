@@ -57,6 +57,7 @@ fun SettingsScreen() {
 	var notifyGranted by remember { mutableStateOf(Notifier.hasPostPermission(context)) }
 	var testTodoHint by remember { mutableStateOf(false) }
 	var simMealHint by remember { mutableStateOf(false) }
+	var simVocabHint by remember { mutableStateOf(false) }
 
 	// 订阅持久化设置；用户操作后写入 DataStore，界面即时生效
 	val settings = SettingsRepository.get(context)
@@ -230,6 +231,25 @@ fun SettingsScreen() {
 		if (simMealHint) {
 			Text(
 				text = stringResource(R.string.sim_meal_scheduled),
+				style = MaterialTheme.typography.bodySmall,
+				color = MaterialTheme.colorScheme.onSurfaceVariant
+			)
+		}
+
+		// 30 秒后模拟背单词提醒：走真实循环逻辑（通知+动作+下一锚点续排），验证分支用
+		Button(onClick = {
+			simVocabHint = true
+			ReminderScheduler.schedule(
+				context,
+				ReminderReason.WORD_CYCLE,
+				System.currentTimeMillis() + 30_000L
+			)
+		}) {
+			Text(stringResource(R.string.settings_simulate_vocab))
+		}
+		if (simVocabHint) {
+			Text(
+				text = stringResource(R.string.sim_vocab_scheduled),
 				style = MaterialTheme.typography.bodySmall,
 				color = MaterialTheme.colorScheme.onSurfaceVariant
 			)

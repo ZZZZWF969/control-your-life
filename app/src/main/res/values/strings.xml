@@ -36,6 +36,19 @@
 	<string name="placeholder_record_desc">饮食与运动的手动记录入口（第二阶段实现）</string>
 	<string name="placeholder_remind_desc">提醒规则与闹钟管理（第三阶段实现）</string>
 
+	<!-- 提醒页 -->
+	<string name="vocab_status_title">背单词</string>
+	<string name="vocab_status_undone">今日还未背，完成前每 1.5 小时提醒一次（至 23:00）</string>
+	<string name="vocab_status_done">今日已完成 ✓ 明天 10:00 见</string>
+	<string name="vocab_notify_title">该背单词啦</string>
+	<string name="vocab_notify_text">背完回到应用点「今日已背」，今天的提醒就到此为止</string>
+	<string name="vocab_action_done">今日已背</string>
+	<string name="vocab_action_go">去背单词</string>
+	<string name="remind_plan_placeholder_title">晚间规划</string>
+	<string name="remind_plan_placeholder_desc">每天 22:00 提醒规划明天：待办、早八/早十闹钟（下一批实现）</string>
+	<string name="settings_simulate_vocab">30 秒后模拟背单词提醒</string>
+	<string name="sim_vocab_scheduled">已排程，30 秒后模拟触发（走真实循环逻辑）</string>
+
 	<!-- 今日页 -->
 	<string name="greeting_morning">早上好</string>
 	<string name="greeting_noon">中午好</string>

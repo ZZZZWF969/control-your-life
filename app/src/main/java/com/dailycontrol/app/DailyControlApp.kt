@@ -5,6 +5,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import com.dailycontrol.app.notify.NotifyChannels
 import com.dailycontrol.app.schedule.DailyPlanner
+import com.dailycontrol.app.schedule.VocabPlanner
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -22,6 +23,7 @@ class DailyControlApp : Application() {
 		// 每次启动都重排每日提醒：自愈机制，覆盖闹钟丢失/时刻变更等异常
 		appScope.launch {
 			DailyPlanner.rescheduleMeals(this@DailyControlApp)
+			VocabPlanner.reschedule(this@DailyControlApp)
 		}
 	}
 

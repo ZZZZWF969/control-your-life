@@ -63,3 +63,8 @@
 
 - **症状**：dumpsys alarm 显示 window=+1h（退化为窗口闹钟，触发可漂移）。
 - **规避**：应用内设置页有「去授权」入口；模拟器上可直接 `adb shell appops set com.dailycontrol.app SCHEDULE_EXACT_ALARM allow`，授权后 window=0 准点。
+
+## 12. Android 11+ 包可见性：不声明 queries 查不到别的应用
+
+- **症状**：`getLaunchIntentForPackage("com.android.chrome")` 应用内返回 null，但 adb shell 的 resolve-activity 能解析（shell 不受可见性限制）——背单词跳转按钮曾因此不出现。
+- **规避**：Manifest 声明 `<queries>`（MAIN/LAUNCHER intent-filter 即可覆盖全部可启动应用）。诊断此类问题时用 `dumpsys notification` 看 actions 字段（构建侧真相），别只信 UI 转储。

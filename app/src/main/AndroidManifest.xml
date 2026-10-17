@@ -10,6 +10,14 @@
 	<!-- 向系统时钟应用写入起床闹钟（第三阶段晚间规划用） -->
 	<uses-permission android:name="com.android.alarm.permission.SET_ALARM" />
 
+	<!-- Android 11+ 包可见性：不声明则查询不到其他应用的启动入口（背单词跳转曾因此拿不到 intent） -->
+	<queries>
+		<intent>
+			<action android:name="android.intent.action.MAIN" />
+			<category android:name="android.intent.category.LAUNCHER" />
+		</intent>
+	</queries>
+
 	<application
 		android:name=".DailyControlApp"
 		android:allowBackup="true"

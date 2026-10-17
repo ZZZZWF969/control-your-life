@@ -5,10 +5,12 @@ import android.content.Context
 import android.content.Intent
 import com.dailycontrol.app.data.db.DailyControlDatabase
 import com.dailycontrol.app.data.entity.MealType
+import com.dailycontrol.app.data.settings.SettingsRepository
 import com.dailycontrol.app.notify.Notifier
 import com.dailycontrol.app.util.TimeUtil
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 
@@ -54,7 +56,15 @@ class ReminderReceiver : BroadcastReceiver() {
 				}
 				DailyPlanner.rescheduleMeals(context)
 			}
-			// 其余类型（背单词/规划/真实待办）在后续批次接入
+			// 背单词循环到点：未完成则发提醒通知（仅「去背单词」入口，确认在应用内），随后滚到下一锚点
+			ReminderReason.WORD_CYCLE -> {
+				val doneToday = SettingsRepository.get(context).vocabDoneDate.first() == LocalDate.now().toString()
+				if (!doneToday) {
+					Notifier.sendVocabNotification(context)
+				}
+				VocabPlanner.reschedule(context)
+			}
+			// 其余类型（规划/真实待办）在后续批次接入
 			else -> Unit
 		}
 	}
