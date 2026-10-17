@@ -1,6 +1,7 @@
 package com.dailycontrol.app.notify
 
 import android.Manifest
+import android.app.Notification
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
@@ -13,6 +14,7 @@ import com.dailycontrol.app.R
 import com.dailycontrol.app.data.entity.MealType
 import com.dailycontrol.app.data.entity.TodoTask
 import com.dailycontrol.app.data.settings.SettingsRepository
+import com.dailycontrol.app.util.ClockLinker
 import com.dailycontrol.app.util.TimeUtil
 import kotlinx.coroutines.flow.first
 
@@ -29,6 +31,8 @@ object Notifier {
 	const val NOTIFY_ID_PLAN = 9200
 	// 待办提醒：9300 起按任务 id 错开
 	const val NOTIFY_ID_TODO_BASE = 9300
+	// 起床唤醒：每声覆盖前一声（只留最新未读）
+	const val NOTIFY_ID_WAKE = 9400
 
 	// 检查是否已获得安卓 13+ 的通知运行时权限
 	fun hasPostPermission(context: Context): Boolean {
@@ -171,6 +175,45 @@ object Notifier {
 			.setAutoCancel(true)
 			.build()
 		NotificationManagerCompat.from(context).notify((NOTIFY_ID_TODO_BASE + task.id).toInt(), notification)
+	}
+
+	// 起床唤醒通知：第几声/共几声；total 为 0 时省略总数（调试模拟场景）
+	// isLast = 末声（双保险方案）：持续震动直到处理，并附「检查时钟闹钟」兜底入口
+	fun sendWakeNotification(context: Context, index: Int, total: Int, isLast: Boolean) {
+		if (!hasPostPermission(context)) {
+			return
+		}
+		val text = when {
+			isLast -> context.getString(R.string.wake_notify_last_text)
+			total > 0 -> context.getString(R.string.wake_notify_text, index, total)
+			else -> context.getString(R.string.wake_notify_text_no_total, index)
+		}
+		val builder = NotificationCompat.Builder(context, NotifyChannels.WAKE_ID)
+			.setSmallIcon(R.drawable.ic_stat_dailycontrol)
+			.setContentTitle(context.getString(R.string.wake_notify_title))
+			.setContentText(text)
+			.setContentIntent(buildTapIntent(context, MainActivity.ROUTE_REMIND, NOTIFY_ID_WAKE))
+			.setAutoCancel(true)
+			.setCategory(NotificationCompat.CATEGORY_ALARM)
+		if (isLast) {
+			// 时钟闹钟没开时的直达入口：一点就到闹钟列表
+			builder.addAction(
+				0,
+				context.getString(R.string.wake_action_check_clock),
+				PendingIntent.getActivity(
+					context,
+					NOTIFY_ID_WAKE + 1,
+					ClockLinker.alarmListIntent(),
+					PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+				)
+			)
+		}
+		val notification = builder.build()
+		if (isLast) {
+			// FLAG_INSISTENT：通知未被处理前系统持续间歇重复提醒；构建器无对应 API，须在成品上改标志位
+			notification.flags = notification.flags or Notification.FLAG_INSISTENT
+		}
+		NotificationManagerCompat.from(context).notify(NOTIFY_ID_WAKE, notification)
 	}
 
 	// 通知点击意图：带导航路由参数，由 MainActivity 解析后转发给应用内导航

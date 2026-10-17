@@ -3,6 +3,7 @@ package com.dailycontrol.app.schedule
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.util.Log
 import com.dailycontrol.app.data.db.DailyControlDatabase
 import com.dailycontrol.app.data.entity.MealType
 import com.dailycontrol.app.data.settings.SettingsRepository
@@ -23,6 +24,8 @@ class ReminderReceiver : BroadcastReceiver() {
 
 	override fun onReceive(context: Context, intent: Intent) {
 		val requestCode = intent.getIntExtra(ReminderReason.EXTRA_REQUEST_CODE, 0)
+		// 到点必留一条日志：真机排查「闹钟触发没」时靠它（其余路径保持静默）
+		Log.d("ReminderReceiver", "fired requestCode=$requestCode")
 		val pendingResult = goAsync()
 		CoroutineScope(Dispatchers.IO).launch {
 			try {
@@ -83,7 +86,28 @@ class ReminderReceiver : BroadcastReceiver() {
 					Notifier.sendPlanNotification(context, primary = false)
 				}
 			}
-			// 待办到点提醒：任务未完成才提醒
+			// 起床唤醒：第 index+1 声；总数从存档读取；末声按存档总数比对
+			// 注意：when 从上到下匹配，窄区间（起床/调试）必须排在宽区间（待办）之前，
+			// 否则待办分支会吞掉起床码段（旧版 5000 段即因此整个失效）
+			in ReminderReason.WAKE_CYCLE_BASE..ReminderReason.WAKE_CYCLE_BASE + ReminderReason.WAKE_CYCLE_MAX - 1 -> {
+				val index = requestCode - ReminderReason.WAKE_CYCLE_BASE + 1
+				val total = SettingsRepository.get(context).wakePlanTimes.first().size
+				val isLast = if (total > 0) index == total else index >= WakePlanner.DEFAULT_COUNT
+				Notifier.sendWakeNotification(context, index, total, isLast)
+			}
+			// 调试：模拟渐进中间声（独立码段，不影响真实计划排程）
+			in ReminderReason.WAKE_DEBUG_RING_BASE..ReminderReason.WAKE_DEBUG_RING_BASE + 2 -> {
+				Notifier.sendWakeNotification(
+					context, requestCode - ReminderReason.WAKE_DEBUG_RING_BASE + 1, 0, isLast = false
+				)
+			}
+			// 调试：模拟末声（持续震动 + 检查时钟入口），total=0 → 文案不显示总数
+			ReminderReason.WAKE_DEBUG_LAST -> {
+				Notifier.sendWakeNotification(
+					context, WakePlanner.DEFAULT_COUNT, 0, isLast = true
+				)
+			}
+			// 待办到点提醒：任务未完成才提醒（宽区间，放在最后兜住）
 			in ReminderReason.TODO_TASK_BASE..ReminderReason.TODO_TASK_BASE + 99999 -> {
 				val taskId = (requestCode - ReminderReason.TODO_TASK_BASE).toLong()
 				val task = DailyControlDatabase.get(context).todoTaskDao()

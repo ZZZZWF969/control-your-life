@@ -50,6 +50,12 @@
 	<string name="sim_vocab_scheduled">已排程，30 秒后模拟触发（走真实循环逻辑）</string>
 	<string name="settings_simulate_plan">30 秒后模拟晚间规划提醒</string>
 	<string name="sim_plan_scheduled">已排程，30 秒后模拟触发（未规划会收到通知）</string>
+	<string name="channel_wake_name">起床闹铃（震动）</string>
+	<string name="wake_notify_title">该起床啦</string>
+	<string name="wake_notify_text">第 %1$d 声（共 %2$d 声）</string>
+	<string name="wake_notify_text_no_total">第 %1$d 声</string>
+	<string name="settings_simulate_wake">1 分钟后模拟起床闹铃（3 声相继）</string>
+	<string name="sim_wake_scheduled">已排程：1/2/3 分钟后各响一声（走真实起床渠道）</string>
 
 	<!-- 晚间规划 -->
 	<string name="plan_title">规划</string>
@@ -66,7 +72,19 @@
 	<string name="plan_wake_none">无课</string>
 	<string name="plan_wake_early8">早八</string>
 	<string name="plan_wake_early10">早十</string>
-	<string name="plan_wake_hint">早八将在次日 07:30–08:00 间随机时刻写入系统时钟，早十为 09:15–09:45；无课不设闹钟</string>
+	<string name="plan_wake_hint">早八：次日 07:30–08:00 渐进震动 4 声（末声 08:00）；早十：09:15–09:45（末声 09:45）。保存后引导去时钟开同时刻闹钟——铃声+震动双保险；无课不设</string>
+
+	<!-- 起床双保险（2026-10-17 方案：系统时钟做主力，应用末声做保底） -->
+	<string name="plan_wake_guide_title">去时钟开一个闹钟</string>
+	<string name="plan_wake_guide_text">已排好明早 4 声渐进震动，末声在 %1$s。\n\n请在时钟里开一个 %1$s 的闹钟——铃声走闹钟音量、静音下也响，是叫醒主力；应用的末声会在同一时刻持续震动作保底。</string>
+	<string name="plan_wake_guide_go">去时钟</string>
+	<string name="plan_wake_guide_later">稍后</string>
+	<string name="remind_open_clock_entry">明早有唤醒计划，去时钟开闹钟（建议 %1$s）</string>
+	<string name="clock_open_failed">未找到时钟应用或该机型不支持此入口</string>
+	<string name="wake_notify_last_text">末声：系统闹钟此刻应已在响，若没响说明时钟闹钟未开，点「检查时钟闹钟」去补开</string>
+	<string name="wake_action_check_clock">检查时钟闹钟</string>
+	<string name="settings_simulate_wake_last">30 秒后模拟末声（持续震动）</string>
+	<string name="sim_wake_last_scheduled">已排程：30 秒后触发第 4 声，持续震动直到处理</string>
 	<string name="plan_save">保存规划</string>
 	<string name="wake_alarm_label">每日掌控·起床</string>
 	<string name="plan_notify_title">该规划明天啦</string>

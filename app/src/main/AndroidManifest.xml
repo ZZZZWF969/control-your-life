@@ -20,6 +20,10 @@
 		<intent>
 			<action android:name="android.intent.action.SET_ALARM" />
 		</intent>
+		<!-- 双保险方案：跳转时钟闹钟列表需要解析 SHOW_ALARMS 处理方 -->
+		<intent>
+			<action android:name="android.intent.action.SHOW_ALARMS" />
+		</intent>
 	</queries>
 
 	<application

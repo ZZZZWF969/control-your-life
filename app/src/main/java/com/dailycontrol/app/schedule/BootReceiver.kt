@@ -18,11 +18,12 @@ class BootReceiver : BroadcastReceiver() {
 		val pendingResult = goAsync()
 		CoroutineScope(Dispatchers.IO).launch {
 			try {
-				// 开机恢复全部每日提醒与未来待办提醒
+				// 开机恢复全部每日提醒、未来待办提醒与起床唤醒计划
 				DailyPlanner.rescheduleMeals(context)
 				DailyPlanner.reschedulePlan(context)
 				DailyPlanner.rescheduleTodoTasks(context)
 				VocabPlanner.reschedule(context)
+				WakePlanner.rescheduleFromStore(context)
 			} finally {
 				pendingResult.finish()
 			}

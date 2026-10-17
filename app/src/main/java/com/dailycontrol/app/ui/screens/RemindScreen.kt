@@ -1,5 +1,6 @@
 package com.dailycontrol.app.ui.screens
 
+import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -42,6 +43,7 @@ import com.dailycontrol.app.notify.Notifier
 import com.dailycontrol.app.schedule.ReminderReason
 import com.dailycontrol.app.schedule.ReminderScheduler
 import com.dailycontrol.app.schedule.VocabPlanner
+import com.dailycontrol.app.util.ClockLinker
 import com.dailycontrol.app.util.TimeUtil
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -63,6 +65,11 @@ fun RemindScreen(onGoToPlan: () -> Unit) {
 		.collectAsStateWithLifecycle(initialValue = emptyList())
 	val tomorrowTasks by remember { db.todoTaskDao().observeByDate(tomorrow.toEpochDay()) }
 		.collectAsStateWithLifecycle(initialValue = emptyList())
+
+	// 唤醒存档只有落在明天（排「明天+早八/早十」时写入）才显示去时钟入口；无课/当日规划会清档
+	val wakePlanDate by settings.wakePlanDate.collectAsStateWithLifecycle(initialValue = "")
+	val wakePlanTimes by settings.wakePlanTimes.collectAsStateWithLifecycle(initialValue = emptyList())
+	val wakeTomorrow = wakePlanDate == tomorrow.toString() && wakePlanTimes.isNotEmpty()
 
 	Column(
 		modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
@@ -141,6 +148,25 @@ fun RemindScreen(onGoToPlan: () -> Unit) {
 			)
 		} else {
 			tomorrowTasks.forEach { task -> TodoTaskRow(task) }
+		}
+
+		// 去时钟入口（双保险方案）：明天有唤醒计划时常驻显示，保存时的引导错过也能再跳
+		if (wakeTomorrow) {
+			OutlinedButton(
+				onClick = {
+					// 个别 ROM 无时钟应用/不支持 SHOW_ALARMS 时给出可见反馈，便于真机排查
+					if (!ClockLinker.openAlarmList(context)) {
+						Toast.makeText(
+							context,
+							context.getString(R.string.clock_open_failed),
+							Toast.LENGTH_SHORT
+						).show()
+					}
+				},
+				modifier = Modifier.fillMaxWidth()
+			) {
+				Text(stringResource(R.string.remind_open_clock_entry, TimeUtil.formatTime(wakePlanTimes.last())))
+			}
 		}
 
 		// 规划入口：22:00 通知深链直达规划页；这里提供常驻入口

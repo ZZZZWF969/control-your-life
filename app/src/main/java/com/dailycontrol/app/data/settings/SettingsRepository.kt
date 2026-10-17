@@ -51,6 +51,18 @@ class SettingsRepository private constructor(private val context: Context) {
 		prefs[KEY_LAST_PLANNED_DATE] ?: ""
 	}
 
+	// 起床唤醒计划：目标日期 + 各声的触发时刻（重启自愈时按时刻重排）
+	val wakePlanDate: Flow<String> = context.dataStore.data.map { prefs ->
+		prefs[KEY_WAKE_DATE] ?: ""
+	}
+
+	val wakePlanTimes: Flow<List<Long>> = context.dataStore.data.map { prefs ->
+		(prefs[KEY_WAKE_TIMES] ?: "")
+			.split(",")
+			.filter { it.isNotBlank() }
+			.map { it.toLong() }
+	}
+
 	suspend fun setThemeMode(mode: ThemeMode) {
 		context.dataStore.edit { prefs ->
 			prefs[KEY_THEME_MODE] = mode.storageName
@@ -85,6 +97,14 @@ class SettingsRepository private constructor(private val context: Context) {
 		context.dataStore.edit { it[KEY_LAST_PLANNED_DATE] = dateIso }
 	}
 
+	// 空日期表示清除起床计划
+	suspend fun setWakePlan(dateIso: String, timesMillis: List<Long>) {
+		context.dataStore.edit { prefs ->
+			prefs[KEY_WAKE_DATE] = dateIso
+			prefs[KEY_WAKE_TIMES] = timesMillis.joinToString(",")
+		}
+	}
+
 	companion object {
 		// DataStore 实例必须全局唯一，用顶层委托挂在 Context 上由系统保证
 		private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
@@ -97,6 +117,8 @@ class SettingsRepository private constructor(private val context: Context) {
 		private val KEY_VOCAB_PACKAGE = stringPreferencesKey("vocab_package")
 		private val KEY_VOCAB_DONE_DATE = stringPreferencesKey("vocab_done_date")
 		private val KEY_LAST_PLANNED_DATE = stringPreferencesKey("last_planned_date")
+		private val KEY_WAKE_DATE = stringPreferencesKey("wake_date")
+		private val KEY_WAKE_TIMES = stringPreferencesKey("wake_times")
 
 		@Volatile
 		private var instance: SettingsRepository? = null

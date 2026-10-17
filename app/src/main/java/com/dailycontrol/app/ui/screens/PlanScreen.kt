@@ -17,6 +17,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -29,6 +30,7 @@ import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -48,8 +50,9 @@ import com.dailycontrol.app.data.entity.TodoTask
 import com.dailycontrol.app.data.settings.SettingsRepository
 import com.dailycontrol.app.schedule.ReminderReason
 import com.dailycontrol.app.schedule.ReminderScheduler
-import com.dailycontrol.app.schedule.SystemAlarmSetter
+import com.dailycontrol.app.schedule.WakePlanner
 import com.dailycontrol.app.ui.components.TimePickerDialog
+import com.dailycontrol.app.util.ClockLinker
 import com.dailycontrol.app.util.TimeUtil
 import kotlinx.coroutines.launch
 import java.time.Instant
@@ -85,6 +88,8 @@ fun PlanScreen(onDone: () -> Unit) {
 	var wakePick by remember { mutableStateOf(WakePick.NONE) }
 	var timeEditIndex by remember { mutableStateOf<Int?>(null) }
 	var saving by remember { mutableStateOf(false) }
+	// 双保险方案：为明天排了早八/早十时，保存后先引导去时钟手动开闹钟，再离开规划页
+	var wakeGuidePick by remember { mutableStateOf<WakePick?>(null) }
 
 	// 切换目标日期时载入该日的未完成任务作为草稿（编辑语义）
 	LaunchedEffect(forTomorrow) {
@@ -218,12 +223,16 @@ fun PlanScreen(onDone: () -> Unit) {
 				if (saving) {
 					return@Button
 				}
-				saving = true
-				scope.launch {
-					savePlan(context, db, targetDate(forTomorrow), drafts, wakePick)
-					saving = false
+			saving = true
+			scope.launch {
+				savePlan(context, db, targetDate(forTomorrow), forTomorrow, drafts, wakePick)
+				saving = false
+				if (forTomorrow && wakePick != WakePick.NONE) {
+					wakeGuidePick = wakePick
+				} else {
 					onDone()
 				}
+			}
 			},
 			modifier = Modifier.fillMaxWidth()
 		) {
@@ -246,17 +255,44 @@ fun PlanScreen(onDone: () -> Unit) {
 			onDismiss = { timeEditIndex = null }
 		)
 	}
+
+	// 保存后的时钟引导（双保险方案）：系统时钟铃声做叫醒主力，应用末声持续震动做保底
+	wakeGuidePick?.let { pick ->
+		AlertDialog(
+			onDismissRequest = { wakeGuidePick = null; onDone() },
+			title = { Text(stringResource(R.string.plan_wake_guide_title)) },
+			text = { Text(stringResource(R.string.plan_wake_guide_text, lastRingTimeLabel(pick))) },
+			confirmButton = {
+				TextButton(onClick = {
+					ClockLinker.openAlarmList(context)
+					wakeGuidePick = null
+					onDone()
+				}) { Text(stringResource(R.string.plan_wake_guide_go)) }
+			},
+			dismissButton = {
+				TextButton(onClick = { wakeGuidePick = null; onDone() }) {
+					Text(stringResource(R.string.plan_wake_guide_later))
+				}
+			}
+		)
+	}
+}
+
+// 引导弹窗里建议的闹钟时刻 = 应用末声的固定时刻（早八 08:00 / 早十 09:45）
+private fun lastRingTimeLabel(pick: WakePick): String {
+	return if (pick == WakePick.EARLY8) "08:00" else "09:45"
 }
 
 private fun targetDate(forTomorrow: Boolean): LocalDate {
 	return if (forTomorrow) LocalDate.now().plusDays(1) else LocalDate.now()
 }
 
-// 保存：整体替换该日未完成任务 → 排/撤对应闹钟 → 需起床时写系统时钟 → 标记当晚已规划
+// 保存：整体替换该日未完成任务 → 排/撤对应闹钟 → 按勾选排/撤起床唤醒 → 标记当晚已规划
 private suspend fun savePlan(
 	context: android.content.Context,
 	db: DailyControlDatabase,
 	date: LocalDate,
+	forTomorrow: Boolean,
 	drafts: List<TodoDraft>,
 	wakePick: WakePick
 ) {
@@ -303,11 +339,16 @@ private suspend fun savePlan(
 		ReminderScheduler.cancel(context, ReminderReason.TODO_TASK_BASE + task.id.toInt())
 	}
 
-	// 起床闹钟：早八 07:30-08:00 随机 / 早十 09:15-09:45 随机，写入系统时钟应用
-	when (wakePick) {
-		WakePick.EARLY8 -> SystemAlarmSetter.setWakeAlarm(context, morningClass = true)
-		WakePick.EARLY10 -> SystemAlarmSetter.setWakeAlarm(context, morningClass = false)
-		WakePick.NONE -> Unit
+	// 起床唤醒（2026-10-17 真机决策：全应用内渐进唤醒，不写系统时钟）：
+	// 仅当为「明天」规划时排 N 声；选无课或当天规划则撤销全部
+	if (forTomorrow) {
+		when (wakePick) {
+			WakePick.EARLY8 -> WakePlanner.plan(context, date, morningClass = true)
+			WakePick.EARLY10 -> WakePlanner.plan(context, date, morningClass = false)
+			WakePick.NONE -> WakePlanner.cancel(context)
+		}
+	} else {
+		WakePlanner.cancel(context)
 	}
 
 	// 标记今晚已完成规划（22:00 未规划提醒与 23:00 二次提醒据此判断）

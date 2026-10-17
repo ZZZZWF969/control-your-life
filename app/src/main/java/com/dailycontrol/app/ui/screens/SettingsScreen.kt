@@ -59,6 +59,8 @@ fun SettingsScreen() {
 	var simMealHint by remember { mutableStateOf(false) }
 	var simVocabHint by remember { mutableStateOf(false) }
 	var simPlanHint by remember { mutableStateOf(false) }
+	var simWakeHint by remember { mutableStateOf(false) }
+	var simWakeLastHint by remember { mutableStateOf(false) }
 
 	// 订阅持久化设置；用户操作后写入 DataStore，界面即时生效
 	val settings = SettingsRepository.get(context)
@@ -244,6 +246,48 @@ fun SettingsScreen() {
 		if (simPlanHint) {
 			Text(
 				text = stringResource(R.string.sim_plan_scheduled),
+				style = MaterialTheme.typography.bodySmall,
+				color = MaterialTheme.colorScheme.onSurfaceVariant
+			)
+		}
+
+		// 起床唤醒实测：1 分钟后起 3 声相继闹铃（走真实接收器与起床震动渠道）
+		// 调试模拟用独立码段，不占用真实计划的 WAKE_CYCLE 码块（同码会互相覆盖排程）
+		Button(onClick = {
+			simWakeHint = true
+			val now = System.currentTimeMillis()
+			listOf(60_000L, 100_000L, 140_000L).forEachIndexed { index, delay ->
+				ReminderScheduler.schedule(
+					context,
+					ReminderReason.WAKE_DEBUG_RING_BASE + index,
+					now + delay
+				)
+			}
+		}) {
+			Text(stringResource(R.string.settings_simulate_wake))
+		}
+		if (simWakeHint) {
+			Text(
+				text = stringResource(R.string.sim_wake_scheduled),
+				style = MaterialTheme.typography.bodySmall,
+				color = MaterialTheme.colorScheme.onSurfaceVariant
+			)
+		}
+
+		// 模拟末声（双保险方案）：30 秒后触发末声，验证持续震动直到处理 + 「检查时钟闹钟」入口
+		Button(onClick = {
+			simWakeLastHint = true
+			ReminderScheduler.schedule(
+				context,
+				ReminderReason.WAKE_DEBUG_LAST,
+				System.currentTimeMillis() + 30_000L
+			)
+		}) {
+			Text(stringResource(R.string.settings_simulate_wake_last))
+		}
+		if (simWakeLastHint) {
+			Text(
+				text = stringResource(R.string.sim_wake_last_scheduled),
 				style = MaterialTheme.typography.bodySmall,
 				color = MaterialTheme.colorScheme.onSurfaceVariant
 			)
