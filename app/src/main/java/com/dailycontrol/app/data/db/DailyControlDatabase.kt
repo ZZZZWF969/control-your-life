@@ -9,14 +9,16 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import com.dailycontrol.app.data.dao.DietRecordDao
 import com.dailycontrol.app.data.dao.ExerciseRecordDao
 import com.dailycontrol.app.data.dao.NutrientItemDao
+import com.dailycontrol.app.data.dao.TodoTaskDao
 import com.dailycontrol.app.data.entity.DietRecord
 import com.dailycontrol.app.data.entity.ExerciseRecord
 import com.dailycontrol.app.data.entity.NutrientItem
+import com.dailycontrol.app.data.entity.TodoTask
 
-// Room 数据库：饮食记录（含营养素明细子表）与运动记录，后续阶段在此追加新表并递增 version
+// Room 数据库：饮食记录（含营养素明细子表）、运动记录、待办任务，后续阶段在此追加新表并递增 version
 @Database(
-	entities = [DietRecord::class, ExerciseRecord::class, NutrientItem::class],
-	version = 3,
+	entities = [DietRecord::class, ExerciseRecord::class, NutrientItem::class, TodoTask::class],
+	version = 4,
 	exportSchema = true
 )
 abstract class DailyControlDatabase : RoomDatabase() {
@@ -26,6 +28,8 @@ abstract class DailyControlDatabase : RoomDatabase() {
 	abstract fun exerciseRecordDao(): ExerciseRecordDao
 
 	abstract fun nutrientItemDao(): NutrientItemDao
+
+	abstract fun todoTaskDao(): TodoTaskDao
 
 	companion object {
 		// 1→2：饮食记录新增「重量/容量」与「营养素明细」两列（零食与营养品需要）
@@ -52,6 +56,22 @@ abstract class DailyControlDatabase : RoomDatabase() {
 			}
 		}
 
+		// 3→4：新增待办任务表（晚间规划与当日加记）
+		private val MIGRATION_3_4 = object : Migration(3, 4) {
+			override fun migrate(db: SupportSQLiteDatabase) {
+				db.execSQL(
+					"CREATE TABLE IF NOT EXISTS `todo_task` (" +
+						"`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+						"`taskDateEpochDay` INTEGER NOT NULL, " +
+						"`title` TEXT NOT NULL, " +
+						"`startAtMillis` INTEGER, " +
+						"`remindAheadMinutes` INTEGER NOT NULL, " +
+						"`done` INTEGER NOT NULL, " +
+						"`createdAt` INTEGER NOT NULL)"
+				)
+			}
+		}
+
 		// 单例入口：全应用共享同一个数据库连接，避免重复打开的开销与竞争
 		@Volatile
 		private var instance: DailyControlDatabase? = null
@@ -62,7 +82,7 @@ abstract class DailyControlDatabase : RoomDatabase() {
 					context.applicationContext,
 					DailyControlDatabase::class.java,
 					"daily_control.db"
-				).addMigrations(MIGRATION_1_2, MIGRATION_2_3).build().also { instance = it }
+				).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4).build().also { instance = it }
 			}
 		}
 	}

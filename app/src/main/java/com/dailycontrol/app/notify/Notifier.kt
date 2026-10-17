@@ -11,7 +11,9 @@ import androidx.core.content.ContextCompat
 import com.dailycontrol.app.MainActivity
 import com.dailycontrol.app.R
 import com.dailycontrol.app.data.entity.MealType
+import com.dailycontrol.app.data.entity.TodoTask
 import com.dailycontrol.app.data.settings.SettingsRepository
+import com.dailycontrol.app.util.TimeUtil
 import kotlinx.coroutines.flow.first
 
 // 通知发送的统一入口：界面层与调度层只调用这里，不直接拼装 Notification
@@ -23,6 +25,10 @@ object Notifier {
 	const val NOTIFY_ID_MEAL_BASE = 9002
 	// 背单词循环提醒通知 id（循环内覆盖同一条）
 	const val NOTIFY_ID_WORD = 9100
+	// 晚间规划提醒（首次与二次共用一条，互相覆盖）
+	const val NOTIFY_ID_PLAN = 9200
+	// 待办提醒：9300 起按任务 id 错开
+	const val NOTIFY_ID_TODO_BASE = 9300
 
 	// 检查是否已获得安卓 13+ 的通知运行时权限
 	fun hasPostPermission(context: Context): Boolean {
@@ -118,6 +124,53 @@ object Notifier {
 
 	fun cancelVocabNotification(context: Context) {
 		NotificationManagerCompat.from(context).cancel(NOTIFY_ID_WORD)
+	}
+
+	// 晚间规划提醒：primary=22:00 首次，false=23:00 二次；点击深链到规划页
+	fun sendPlanNotification(context: Context, primary: Boolean) {
+		if (!hasPostPermission(context)) {
+			return
+		}
+		val notification = NotificationCompat.Builder(context, NotifyChannels.PLAN_ID)
+			.setSmallIcon(R.drawable.ic_stat_dailycontrol)
+			.setContentTitle(
+				context.getString(
+					if (primary) R.string.plan_notify_title else R.string.plan_notify_second_title
+				)
+			)
+			.setContentText(context.getString(R.string.plan_notify_text))
+			.setContentIntent(buildTapIntent(context, MainActivity.ROUTE_PLAN, NOTIFY_ID_PLAN))
+			.setAutoCancel(true)
+			.build()
+		NotificationManagerCompat.from(context).notify(NOTIFY_ID_PLAN, notification)
+	}
+
+	// 待办到点提醒：任务名 + 开始时间；点击深链到提醒页（任务清单在那）
+	fun sendTodoTaskNotification(context: Context, task: TodoTask) {
+		if (!hasPostPermission(context)) {
+			return
+		}
+		val timeText = task.startAtMillis?.let { TimeUtil.formatTime(it) } ?: ""
+		val notification = NotificationCompat.Builder(context, NotifyChannels.TODO_ID)
+			.setSmallIcon(R.drawable.ic_stat_dailycontrol)
+			.setContentTitle(task.title)
+			.setContentText(
+				if (timeText.isNotBlank()) {
+					context.getString(R.string.todo_notify_text_with_time, timeText)
+				} else {
+					context.getString(R.string.todo_notify_text)
+				}
+			)
+			.setContentIntent(
+				buildTapIntent(
+					context,
+					MainActivity.ROUTE_REMIND,
+					(NOTIFY_ID_TODO_BASE + task.id).toInt()
+				)
+			)
+			.setAutoCancel(true)
+			.build()
+		NotificationManagerCompat.from(context).notify((NOTIFY_ID_TODO_BASE + task.id).toInt(), notification)
 	}
 
 	// 通知点击意图：带导航路由参数，由 MainActivity 解析后转发给应用内导航

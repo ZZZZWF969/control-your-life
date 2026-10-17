@@ -68,3 +68,18 @@
 
 - **症状**：`getLaunchIntentForPackage("com.android.chrome")` 应用内返回 null，但 adb shell 的 resolve-activity 能解析（shell 不受可见性限制）——背单词跳转按钮曾因此不出现。
 - **规避**：Manifest 声明 `<queries>`（MAIN/LAUNCHER intent-filter 即可覆盖全部可启动应用）。诊断此类问题时用 `dumpsys notification` 看 actions 字段（构建侧真相），别只信 UI 转储。
+
+## 13. adb 广播打不到未导出的 Receiver
+
+- **症状**：`am broadcast -n 包名/.Receiver --ei ... 3001` 返回 result=0（看似成功）但 onReceive 根本不执行——外部（含 shell）显式广播到 `exported=false` 的组件会被静默拦截。
+- **规避**：不要用 am broadcast 测内部 Receiver；用真实路径——调试按钮排一个 30 秒/3 分钟后的真实闹钟（PendingIntent 触发），或等真实定时。
+
+## 14. uiautomator dump 的陈旧缓存与滚动时机
+
+- **症状**：dump 读到的还是几轮前的页面（甚至桌面）内容，误导排查方向；小步滚动后立刻 dump 常拿不到更新后的布局。
+- **规避**：每次 dump 前 `rm /sdcard/ui.xml` 再 dump；滚动后等布局稳定（1.5s+）再 dump；大步滚动（1000px+）比多次小滚动可靠。
+
+## 15. 模拟器 deskclock 不支持 SET_ALARM 的 SKIP_UI 静默创建
+
+- **症状**：应用与 adb 注入 SET_ALARM（SKIP_UI=true）都返回成功，但闹钟列表不出现新闹钟——模拟器内置时钟应用（旧版 deskclock）不完整支持该协议。
+- **规避**：模拟器上只验证 intent 构造正确；真实写入效果留真机（HyperOS 时钟）验证，失败时有 Log.w 日志可查。

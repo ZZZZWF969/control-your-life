@@ -48,6 +48,40 @@
 	<string name="remind_plan_placeholder_desc">每天 22:00 提醒规划明天：待办、早八/早十闹钟（下一批实现）</string>
 	<string name="settings_simulate_vocab">30 秒后模拟背单词提醒</string>
 	<string name="sim_vocab_scheduled">已排程，30 秒后模拟触发（走真实循环逻辑）</string>
+	<string name="settings_simulate_plan">30 秒后模拟晚间规划提醒</string>
+	<string name="sim_plan_scheduled">已排程，30 秒后模拟触发（未规划会收到通知）</string>
+
+	<!-- 晚间规划 -->
+	<string name="plan_title">规划</string>
+	<string name="plan_day_today">今天</string>
+	<string name="plan_day_tomorrow">明天</string>
+	<string name="plan_section_todo">待办</string>
+	<string name="plan_task_title_hint">任务名，如：交作业</string>
+	<string name="plan_task_no_time">不设时间</string>
+	<string name="plan_task_ahead">提前提醒</string>
+	<string name="plan_ahead_option">%1$d 分钟</string>
+	<string name="plan_add_task">添加一条</string>
+	<string name="plan_remove_task">移除该条</string>
+	<string name="plan_section_wake">起床闹钟</string>
+	<string name="plan_wake_none">无课</string>
+	<string name="plan_wake_early8">早八</string>
+	<string name="plan_wake_early10">早十</string>
+	<string name="plan_wake_hint">早八将在次日 07:30–08:00 间随机时刻写入系统时钟，早十为 09:15–09:45；无课不设闹钟</string>
+	<string name="plan_save">保存规划</string>
+	<string name="wake_alarm_label">每日掌控·起床</string>
+	<string name="plan_notify_title">该规划明天啦</string>
+	<string name="plan_notify_second_title">再不规划，明早要抓瞎啦</string>
+	<string name="plan_notify_text">点开安排明天的待办与起床闹钟，只要一分钟</string>
+	<string name="todo_notify_text_with_time">将于 %1$s 开始，别忘了</string>
+	<string name="todo_notify_text">到点啦，别忘了这件事</string>
+
+	<!-- 提醒页·待办清单 -->
+	<string name="remind_section_today_todo">今日待办</string>
+	<string name="remind_section_tomorrow_todo">明日待办</string>
+	<string name="remind_empty_todo">暂无待办</string>
+	<string name="remind_plan_entry">去规划今天 / 明天</string>
+	<string name="confirm_delete_todo_title">删除待办</string>
+	<string name="confirm_delete_todo_text">确定删除这条待办吗？连同它的提醒一起取消。</string>
 
 	<!-- 今日页 -->
 	<string name="greeting_morning">早上好</string>

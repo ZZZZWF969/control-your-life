@@ -27,6 +27,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.dailycontrol.app.R
 import com.dailycontrol.app.ui.screens.AiScreen
+import com.dailycontrol.app.ui.screens.PlanScreen
 import com.dailycontrol.app.ui.screens.RecordScreen
 import com.dailycontrol.app.ui.screens.RemindScreen
 import com.dailycontrol.app.ui.screens.SettingsScreen
@@ -115,9 +116,19 @@ fun DailyControlAppRoot(
 			) { entry ->
 				RecordScreen(initialMeal = entry.arguments?.getString("meal"))
 			}
-			composable("remind") { RemindScreen() }
+			composable("remind") {
+				RemindScreen(onGoToPlan = {
+					navController.navigate("plan") {
+						launchSingleTop = true
+					}
+				})
+			}
 			composable("ai") { AiScreen() }
 			composable("settings") { SettingsScreen() }
+			// 规划页：不占底栏，由提醒页入口与 22:00 通知深链进入
+			composable("plan") {
+				PlanScreen(onDone = { navController.popBackStack() })
+			}
 		}
 	}
 }

@@ -23,6 +23,8 @@ class DailyControlApp : Application() {
 		// 每次启动都重排每日提醒：自愈机制，覆盖闹钟丢失/时刻变更等异常
 		appScope.launch {
 			DailyPlanner.rescheduleMeals(this@DailyControlApp)
+			DailyPlanner.reschedulePlan(this@DailyControlApp)
+			DailyPlanner.rescheduleTodoTasks(this@DailyControlApp)
 			VocabPlanner.reschedule(this@DailyControlApp)
 		}
 	}

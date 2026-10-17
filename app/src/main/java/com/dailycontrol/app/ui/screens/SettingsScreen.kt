@@ -58,6 +58,7 @@ fun SettingsScreen() {
 	var testTodoHint by remember { mutableStateOf(false) }
 	var simMealHint by remember { mutableStateOf(false) }
 	var simVocabHint by remember { mutableStateOf(false) }
+	var simPlanHint by remember { mutableStateOf(false) }
 
 	// 订阅持久化设置；用户操作后写入 DataStore，界面即时生效
 	val settings = SettingsRepository.get(context)
@@ -197,20 +198,52 @@ fun SettingsScreen() {
 			)
 		}
 
-		// 三分钟后的真实待办提醒：实测「排程→系统闹钟→通知→深链」全链路
+		// 三分钟后的真实测试待办：创建真实任务并走完整链路（落库→排程→到点通知→提醒页列表）
 		Button(onClick = {
 			testTodoHint = true
-			ReminderScheduler.schedule(
-				context,
-				ReminderReason.TODO_TEST,
-				System.currentTimeMillis() + 3 * 60_000L
-			)
+			scope.launch {
+				val now = System.currentTimeMillis()
+				val db = DailyControlDatabase.get(context)
+				val task = com.dailycontrol.app.data.entity.TodoTask(
+					taskDateEpochDay = java.time.LocalDate.now().toEpochDay(),
+					title = context.getString(R.string.test_todo_title),
+					startAtMillis = now + 3 * 60_000L,
+					remindAheadMinutes = 1,
+					done = false,
+					createdAt = now
+				)
+				val id = db.todoTaskDao().insert(task)
+				ReminderScheduler.schedule(
+					context,
+					ReminderReason.TODO_TASK_BASE + id.toInt(),
+					task.startAtMillis!! - 60_000L
+				)
+			}
 		}) {
 			Text(stringResource(R.string.settings_create_test_todo))
 		}
 		if (testTodoHint) {
 			Text(
 				text = stringResource(R.string.test_todo_scheduled),
+				style = MaterialTheme.typography.bodySmall,
+				color = MaterialTheme.colorScheme.onSurfaceVariant
+			)
+		}
+
+		// 30 秒后模拟晚间规划提醒：走真实 PLAN_PRIMARY 闹钟路径，验证 22:00/23:00 双分支
+		Button(onClick = {
+			simPlanHint = true
+			ReminderScheduler.schedule(
+				context,
+				ReminderReason.PLAN_PRIMARY,
+				System.currentTimeMillis() + 30_000L
+			)
+		}) {
+			Text(stringResource(R.string.settings_simulate_plan))
+		}
+		if (simPlanHint) {
+			Text(
+				text = stringResource(R.string.sim_plan_scheduled),
 				style = MaterialTheme.typography.bodySmall,
 				color = MaterialTheme.colorScheme.onSurfaceVariant
 			)

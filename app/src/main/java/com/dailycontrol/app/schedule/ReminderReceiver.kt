@@ -13,6 +13,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.time.LocalDate
+import java.time.LocalTime
+import java.time.ZoneId
+import java.time.ZonedDateTime
 
 // 提醒到点接收器：系统闹钟触发后按 requestCode 分发处理
 // goAsync + 协程：onReceive 主线程不允许做数据库查询，异步完成后才允许结束广播
@@ -64,8 +67,43 @@ class ReminderReceiver : BroadcastReceiver() {
 				}
 				VocabPlanner.reschedule(context)
 			}
-			// 其余类型（规划/真实待办）在后续批次接入
+			// 晚间规划首次提醒：未规划则发通知；同时动态排 23:00 的二次提醒（若尚未到）
+			ReminderReason.PLAN_PRIMARY -> {
+				schedulePlanSecondIfBefore23(context)
+				val planned = SettingsRepository.get(context).lastPlannedDate.first() == LocalDate.now().toString()
+				if (!planned) {
+					Notifier.sendPlanNotification(context, primary = true)
+				}
+				DailyPlanner.reschedulePlan(context)
+			}
+			// 23:00 二次提醒：仍未规划才再发一次
+			ReminderReason.PLAN_SECOND -> {
+				val planned = SettingsRepository.get(context).lastPlannedDate.first() == LocalDate.now().toString()
+				if (!planned) {
+					Notifier.sendPlanNotification(context, primary = false)
+				}
+			}
+			// 待办到点提醒：任务未完成才提醒
+			in ReminderReason.TODO_TASK_BASE..ReminderReason.TODO_TASK_BASE + 99999 -> {
+				val taskId = (requestCode - ReminderReason.TODO_TASK_BASE).toLong()
+				val task = DailyControlDatabase.get(context).todoTaskDao()
+					.getByReminderRequest(taskId)
+				if (task != null && !task.done) {
+					Notifier.sendTodoTaskNotification(context, task)
+				}
+			}
+			// 其余类型在后续批次接入
 			else -> Unit
+		}
+	}
+
+	// 规划时刻触发时，把二次提醒排到当晚 23:00（若当前已过 23:00 则跳过）
+	private fun schedulePlanSecondIfBefore23(context: Context) {
+		val zone = ZoneId.systemDefault()
+		val now = ZonedDateTime.now(zone)
+		val secondAt = now.toLocalDate().atTime(LocalTime.of(23, 0)).atZone(zone)
+		if (secondAt.isAfter(now)) {
+			ReminderScheduler.schedule(context, ReminderReason.PLAN_SECOND, secondAt.toInstant().toEpochMilli())
 		}
 	}
 }

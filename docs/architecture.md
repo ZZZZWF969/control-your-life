@@ -21,9 +21,18 @@ com.dailycontrol.app
 │   ├── theme/           设计系统（颜色、形状——浅/深两套主题的定义处）
 │   ├── components/      跨页面公共组件（时间选择弹窗、圆形徽标、确认弹窗）
 │   └── screens/         五个页面 + 各自的表单/卡片
-├── notify/              通知层：通知渠道注册与发送（目前一个通用渠道）
+├── notify/              通知层：渠道注册与发送（三餐/背单词/规划/待办四个渠道 + 通用）
+├── schedule/            调度层（第三阶段新增）：所有「定时」都在这
+│   ├── ReminderScheduler  AlarmManager 精确排程封装（未授权精确闹钟时自动退化）
+│   ├── ReminderReceiver   到点接收器：按类型分发（询问/循环/规划/待办）
+│   ├── BootReceiver       开机重排（依赖「自启动」权限）
+│   ├── DailyPlanner       每日提醒排程（三餐/规划时刻）+ 待办自愈重排
+│   ├── VocabPlanner       背单词锚点制循环（10:00 起每 90 分钟，完成即滚明天）
+│   └── SystemAlarmSetter  起床闹钟写入系统时钟应用（SET_ALARM 协议）
 └── util/                工具层：时间换算与格式化（记录页/今日页共用）
 ```
+
+数据层第三阶段的变化：`todo_task` 待办表（DB v4）；DataStore 新增提醒时刻、背单词包名/完成日期、最近规划日期等配置。
 
 ## 二、分层与调用关系
 
@@ -70,9 +79,10 @@ MainActivity（容器）
 |---|---|---|
 | 今日 | `TodayScreen.kt` | 只读汇总：三餐完成度、运动时长、当日列表、跳转记录页 |
 | 记录 | `RecordScreen.kt` + `DietEntrySheet` / `DietRecordCard` / `ExerciseEntrySheet` / `ExerciseRecordCard` | 按日管理与增删改查 |
-| 提醒 | `RemindScreen.kt` | 占位（第三阶段） |
+| 提醒 | `RemindScreen.kt` | 背单词状态卡、今日/明日待办清单（勾完成/删除）、规划入口 |
+| 规划 | `PlanScreen.kt`（不在底栏，通知深链/提醒页进入） | 为今天或明天安排待办与起床闹钟 |
 | AI | `AiScreen.kt` | 占位（第四阶段） |
-| 设置 | `SettingsScreen.kt` | 外观（主题三档）+ 链路自检工具 |
+| 设置 | `SettingsScreen.kt` | 外观（主题三档）、提醒时间、跳转应用、链路自检与调试工具 |
 
 底部导航在 `ui/AppRoot.kt`：它持有「当前在哪页」的状态，切换页面 = 交换界面树里的内容，五个页面互不直接引用（今日页跳记录页走的是导航路由，不是直接调用）。
 

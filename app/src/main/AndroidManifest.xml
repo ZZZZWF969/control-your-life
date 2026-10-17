@@ -16,6 +16,10 @@
 			<action android:name="android.intent.action.MAIN" />
 			<category android:name="android.intent.category.LAUNCHER" />
 		</intent>
+		<!-- 写入系统时钟的起床闹钟需要解析 SET_ALARM 处理方 -->
+		<intent>
+			<action android:name="android.intent.action.SET_ALARM" />
+		</intent>
 	</queries>
 
 	<application

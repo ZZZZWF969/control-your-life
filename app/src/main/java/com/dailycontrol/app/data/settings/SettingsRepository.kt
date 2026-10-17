@@ -46,6 +46,11 @@ class SettingsRepository private constructor(private val context: Context) {
 		prefs[KEY_VOCAB_DONE_DATE] ?: ""
 	}
 
+	// 最近一次保存「明日规划」的日期：22:00 提醒与 23:00 二次提醒据此判断当晚是否已规划
+	val lastPlannedDate: Flow<String> = context.dataStore.data.map { prefs ->
+		prefs[KEY_LAST_PLANNED_DATE] ?: ""
+	}
+
 	suspend fun setThemeMode(mode: ThemeMode) {
 		context.dataStore.edit { prefs ->
 			prefs[KEY_THEME_MODE] = mode.storageName
@@ -76,6 +81,10 @@ class SettingsRepository private constructor(private val context: Context) {
 		context.dataStore.edit { it[KEY_VOCAB_DONE_DATE] = dateIso }
 	}
 
+	suspend fun setLastPlannedDate(dateIso: String) {
+		context.dataStore.edit { it[KEY_LAST_PLANNED_DATE] = dateIso }
+	}
+
 	companion object {
 		// DataStore 实例必须全局唯一，用顶层委托挂在 Context 上由系统保证
 		private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
@@ -87,6 +96,7 @@ class SettingsRepository private constructor(private val context: Context) {
 		private val KEY_PLAN_MINUTE = intPreferencesKey("plan_minute")
 		private val KEY_VOCAB_PACKAGE = stringPreferencesKey("vocab_package")
 		private val KEY_VOCAB_DONE_DATE = stringPreferencesKey("vocab_done_date")
+		private val KEY_LAST_PLANNED_DATE = stringPreferencesKey("last_planned_date")
 
 		@Volatile
 		private var instance: SettingsRepository? = null
