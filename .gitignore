@@ -9,8 +9,11 @@
 .cxx/
 local.properties
 app/build/
-# 验证截图与录屏属于本地产物，不入库
-docs/screenshots/
+# 验证截图与录屏属于本地产物，不入库；readme/ 专区除外（README 门面图，需入库）
+docs/screenshots/*
+!docs/screenshots/readme/
 # ZCode 会话目录
 .zcode/
 build-log.txt
+# 人机协作规矩属于本地工作约定，不入公开仓库（2026-10-18 商定）
+AGENTS.md

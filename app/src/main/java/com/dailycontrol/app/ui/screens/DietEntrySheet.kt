@@ -68,17 +68,23 @@ private fun defaultMealForNow(): String {
 
 // 饮食录入/编辑表单（底部弹层）：initialRecord 非空即为编辑模式，date 为所属日期
 // 字段按餐别联动：三餐填饭量三档；零食/营养品填重量；营养品再追加结构化营养成分行
+// initialMealType：三餐询问通知深链进入时预选的餐别（仅新建时生效）
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun DietEntrySheet(
 	initialRecord: DietRecord?,
 	initialItems: List<NutrientItem>,
 	date: LocalDate,
+	initialMealType: MealType? = null,
 	onDismiss: () -> Unit,
 	onSave: (DietRecord, List<NutrientItem>) -> Unit
 ) {
 	val isEditing = initialRecord != null
-	var mealType by remember { mutableStateOf(MealType.fromStorage(initialRecord?.mealType ?: defaultMealForNow())) }
+	var mealType by remember {
+		mutableStateOf(
+			MealType.fromStorage(initialRecord?.mealType ?: initialMealType?.storageName ?: defaultMealForNow())
+		)
+	}
 	var foodText by remember { mutableStateOf(initialRecord?.foodText ?: "") }
 	var foodError by remember { mutableStateOf(false) }
 	var portionText by remember { mutableStateOf(initialRecord?.portionText ?: "") }

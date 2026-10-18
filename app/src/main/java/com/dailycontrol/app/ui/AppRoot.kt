@@ -14,16 +14,20 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.dailycontrol.app.R
 import com.dailycontrol.app.ui.screens.AiScreen
+import com.dailycontrol.app.ui.screens.PlanScreen
 import com.dailycontrol.app.ui.screens.RecordScreen
 import com.dailycontrol.app.ui.screens.RemindScreen
 import com.dailycontrol.app.ui.screens.SettingsScreen
@@ -44,12 +48,25 @@ private val navDestinations = listOf(
 	NavDestination("settings", Icons.Filled.Settings, R.string.tab_settings)
 )
 
-// 应用根组件：底部导航栏 + 各页面容器
+// 应用根组件：底部导航栏 + 各页面容器；pendingRoute 用于消费通知深链的导航请求
 @Composable
-fun DailyControlAppRoot() {
+fun DailyControlAppRoot(
+	pendingRoute: String? = null,
+	onRouteConsumed: () -> Unit = {}
+) {
 	val navController = rememberNavController()
 	val backStackEntry by navController.currentBackStackEntryAsState()
 	val currentRoute = backStackEntry?.destination?.route
+
+	// 深链消费：通知带来的路由请求执行一次即清空
+	LaunchedEffect(pendingRoute) {
+		pendingRoute?.let { route ->
+			navController.navigate(route) {
+				launchSingleTop = true
+			}
+			onRouteConsumed()
+		}
+	}
 
 	Scaffold(
 		bottomBar = {
@@ -86,10 +103,32 @@ fun DailyControlAppRoot() {
 					}
 				})
 			}
-			composable("record") { RecordScreen() }
-			composable("remind") { RemindScreen() }
+			// record 路由支持可选餐别参数：三餐询问通知深链 record?meal=breakfast 直接弹预填表单
+			composable(
+				route = "record?meal={meal}",
+				arguments = listOf(
+					navArgument("meal") {
+						type = NavType.StringType
+						nullable = true
+						defaultValue = null
+					}
+				)
+			) { entry ->
+				RecordScreen(initialMeal = entry.arguments?.getString("meal"))
+			}
+			composable("remind") {
+				RemindScreen(onGoToPlan = {
+					navController.navigate("plan") {
+						launchSingleTop = true
+					}
+				})
+			}
 			composable("ai") { AiScreen() }
 			composable("settings") { SettingsScreen() }
+			// 规划页：不占底栏，由提醒页入口与 22:00 通知深链进入
+			composable("plan") {
+				PlanScreen(onDone = { navController.popBackStack() })
+			}
 		}
 	}
 }

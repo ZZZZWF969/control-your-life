@@ -1,6 +1,30 @@
 <resources>
 	<string name="app_name">每日掌控</string>
 	<string name="channel_general_name">常规提醒</string>
+	<string name="channel_meal_name">三餐询问</string>
+	<string name="channel_word_name">背单词</string>
+	<string name="channel_plan_name">晚间规划</string>
+	<string name="channel_todo_name">待办提醒</string>
+
+	<!-- 设置页·提醒与调试 -->
+	<string name="settings_section_reminder">提醒时间</string>
+	<string name="reminder_breakfast">早餐询问</string>
+	<string name="reminder_lunch">午餐询问</string>
+	<string name="reminder_dinner">晚餐询问</string>
+	<string name="reminder_plan">晚间规划</string>
+	<string name="settings_section_launch">跳转应用</string>
+	<string name="vocab_package_label">背单词应用包名</string>
+	<string name="vocab_package_hint">留空表示未配置；真机联调时会自动读取并填入</string>
+	<string name="settings_create_test_todo">创建三分钟后的测试待办</string>
+	<string name="test_todo_scheduled">测试待办已排程，3 分钟后提醒</string>
+	<string name="settings_simulate_meal">1 分钟后模拟早餐询问</string>
+	<string name="sim_meal_scheduled">已排程，1 分钟后模拟触发早餐询问</string>
+	<string name="meal_notify_title">今天的%1$s还没记录</string>
+	<string name="meal_notify_text">点一下，30 秒记完今天的%1$s</string>
+	<string name="test_todo_title">测试待办</string>
+	<string name="test_todo_text">这是三分钟前排下的测试提醒，点击返回应用。</string>
+	<string name="exact_alarm_denied">精确闹钟权限未授予，提醒时刻可能有几分钟漂移</string>
+	<string name="exact_alarm_grant">去授权</string>
 
 	<string name="tab_today">今日</string>
 	<string name="tab_record">记录</string>
@@ -11,6 +35,72 @@
 	<string name="placeholder_today_desc">今日概览：汇总当天饮食、运动与待办完成情况（第二阶段实现）</string>
 	<string name="placeholder_record_desc">饮食与运动的手动记录入口（第二阶段实现）</string>
 	<string name="placeholder_remind_desc">提醒规则与闹钟管理（第三阶段实现）</string>
+
+	<!-- 提醒页 -->
+	<string name="vocab_status_title">背单词</string>
+	<string name="vocab_status_undone">今日还未背，完成前每 1.5 小时提醒一次（至 23:00）</string>
+	<string name="vocab_status_done">今日已完成 ✓ 明天 10:00 见</string>
+	<string name="vocab_notify_title">该背单词啦</string>
+	<string name="vocab_notify_text">背完回到应用点「今日已背」，今天的提醒就到此为止</string>
+	<string name="vocab_action_done">今日已背</string>
+	<string name="vocab_action_go">去背单词</string>
+	<string name="remind_plan_placeholder_title">晚间规划</string>
+	<string name="remind_plan_placeholder_desc">每天 22:00 提醒规划明天：待办、早八/早十闹钟（下一批实现）</string>
+	<string name="settings_simulate_vocab">30 秒后模拟背单词提醒</string>
+	<string name="sim_vocab_scheduled">已排程，30 秒后模拟触发（走真实循环逻辑）</string>
+	<string name="settings_simulate_plan">30 秒后模拟晚间规划提醒</string>
+	<string name="sim_plan_scheduled">已排程，30 秒后模拟触发（未规划会收到通知）</string>
+	<string name="channel_wake_name">起床闹铃（震动）</string>
+	<string name="wake_notify_title">该起床啦</string>
+	<string name="wake_notify_text">第 %1$d 声（共 %2$d 声）</string>
+	<string name="wake_notify_text_no_total">第 %1$d 声</string>
+	<string name="settings_simulate_wake">1 分钟后模拟起床闹铃（3 声相继）</string>
+	<string name="sim_wake_scheduled">已排程：1/2/3 分钟后各响一声（走真实起床渠道）</string>
+
+	<!-- 晚间规划 -->
+	<string name="plan_title">规划</string>
+	<string name="plan_day_today">今天</string>
+	<string name="plan_day_tomorrow">明天</string>
+	<string name="plan_section_todo">待办</string>
+	<string name="plan_task_title_hint">任务名，如：交作业</string>
+	<string name="plan_task_no_time">不设时间</string>
+	<string name="plan_task_ahead">提前提醒</string>
+	<string name="plan_ahead_option">%1$d 分钟</string>
+	<string name="plan_add_task">添加一条</string>
+	<string name="plan_remove_task">移除该条</string>
+	<string name="plan_section_wake">起床闹钟</string>
+	<string name="plan_wake_none">无课</string>
+	<string name="plan_wake_early8">早八</string>
+	<string name="plan_wake_early10">早十</string>
+	<string name="plan_wake_hint">早八：次日 07:30–08:00 渐进震动 4 声（末声 08:00）；早十：09:15–09:45（末声 09:45）。保存后引导去时钟开同时刻闹钟——铃声+震动双保险；无课不设</string>
+
+	<!-- 起床双保险（2026-10-17 方案：系统时钟做主力，应用末声做保底） -->
+	<string name="plan_wake_guide_title">去时钟开一个闹钟</string>
+	<string name="plan_wake_guide_text">已排好明早 4 声渐进震动，末声在 %1$s。\n\n请在时钟里开一个 %1$s 的闹钟——铃声走闹钟音量、静音下也响，是叫醒主力；应用的末声会在同一时刻持续震动作保底。</string>
+	<string name="plan_wake_guide_go">去时钟</string>
+	<string name="plan_wake_guide_later">稍后</string>
+	<string name="remind_open_clock_entry">明早有唤醒计划，去时钟开闹钟（建议 %1$s）</string>
+	<string name="remind_clock_confirmed">闹钟已开 ✓</string>
+	<string name="clock_open_failed">未找到时钟应用或该机型不支持此入口</string>
+	<string name="wake_notify_last_text">末声：系统闹钟此刻应已在响，若没响说明时钟闹钟未开，点「检查时钟闹钟」去补开</string>
+	<string name="wake_action_check_clock">检查时钟闹钟</string>
+	<string name="settings_simulate_wake_last">30 秒后模拟末声（持续震动）</string>
+	<string name="sim_wake_last_scheduled">已排程：30 秒后触发第 4 声，持续震动直到处理</string>
+	<string name="plan_save">保存规划</string>
+	<string name="wake_alarm_label">每日掌控·起床</string>
+	<string name="plan_notify_title">该规划明天啦</string>
+	<string name="plan_notify_second_title">再不规划，明早要抓瞎啦</string>
+	<string name="plan_notify_text">点开安排明天的待办与起床闹钟，只要一分钟</string>
+	<string name="todo_notify_text_with_time">将于 %1$s 开始，别忘了</string>
+	<string name="todo_notify_text">到点啦，别忘了这件事</string>
+
+	<!-- 提醒页·待办清单 -->
+	<string name="remind_section_today_todo">今日待办</string>
+	<string name="remind_section_tomorrow_todo">明日待办</string>
+	<string name="remind_empty_todo">暂无待办</string>
+	<string name="remind_plan_entry">去规划今天 / 明天</string>
+	<string name="confirm_delete_todo_title">删除待办</string>
+	<string name="confirm_delete_todo_text">确定删除这条待办吗？连同它的提醒一起取消。</string>
 
 	<!-- 今日页 -->
 	<string name="greeting_morning">早上好</string>
@@ -78,6 +168,8 @@
 	<string name="meal_snack">零食</string>
 	<string name="meal_supplement">营养品</string>
 	<string name="time_picker_title">选择时间</string>
+	<string name="time_picker_hour">时</string>
+	<string name="time_picker_minute">分</string>
 
 	<!-- 通用操作 -->
 	<string name="action_confirm">确定</string>

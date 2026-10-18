@@ -1,0 +1,32 @@
+# 版本号与发布流程
+
+## 版本号方案
+
+采用 `X.Y.Z` 三段式（语义化思想的简化版，按本项目的阶段化节奏裁剪）：
+
+| 段 | 含义 | 何时递增 |
+|---|---|---|
+| X | 里程碑（对应开发阶段） | 阶段收官 merge 进 master 时 |
+| Y | 阶段内功能批次 | 一个功能批次合入 develop 时 |
+| Z | 修复 | 仅修复、无新功能的批次合入时 |
+
+当前基线：**0.3.0**（第三阶段收官，2026-10-18）。0.1.0 / 0.2.0 为回溯整理，当时未打 tag。
+
+## versionCode
+
+安卓要求的整数版本号，只要求单调递增：每次发版（打 tag）时 +1，不与 X.Y.Z 数值挂钩。
+当前：3（对应 0.3.0）。
+
+## 发布流程
+
+1. 批次完成 → develop 上提交（commit message 首行带批次说明）
+2. 阶段收官 → 报批 merge develop → master
+3. master 上打 tag：`vX.Y.Z`（如 `v0.3.0`），CHANGELOG.md 该版本条目补上日期
+4. 推送 master + develop + tag 到 GitHub
+5.（未来）GitHub Release 页挂对应 APK 产物，Release 说明取自 CHANGELOG 对应条目
+
+## 约定
+
+- CHANGELOG.md 只记「用户可感知」的显著变更（新功能/行为变化/修复），不记纯内部重构与文档
+- 版本号出现在两处：`app/build.gradle.kts`（versionName/versionCode）与 CHANGELOG 标题，同批同步改
+- 上线安装包启用后，versionCode 不可回退（安卓只认更大的整数）
