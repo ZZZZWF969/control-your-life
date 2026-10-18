@@ -168,6 +168,8 @@
 	<string name="meal_snack">零食</string>
 	<string name="meal_supplement">营养品</string>
 	<string name="time_picker_title">选择时间</string>
+	<string name="time_picker_hour">时</string>
+	<string name="time_picker_minute">分</string>
 
 	<!-- 通用操作 -->
 	<string name="action_confirm">确定</string>
