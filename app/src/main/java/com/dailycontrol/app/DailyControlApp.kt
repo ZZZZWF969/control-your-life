@@ -3,6 +3,7 @@ package com.dailycontrol.app
 import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import com.dailycontrol.app.backup.BackupManager
 import com.dailycontrol.app.notify.NotifyChannels
 import com.dailycontrol.app.schedule.DailyPlanner
 import com.dailycontrol.app.schedule.VocabPlanner
@@ -28,6 +29,7 @@ class DailyControlApp : Application() {
 			DailyPlanner.rescheduleTodoTasks(this@DailyControlApp)
 			VocabPlanner.reschedule(this@DailyControlApp)
 			WakePlanner.rescheduleFromStore(this@DailyControlApp)
+			BackupManager.ensureScheduledOnStartup(this@DailyControlApp)
 		}
 	}
 

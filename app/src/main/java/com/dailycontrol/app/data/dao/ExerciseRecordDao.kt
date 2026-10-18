@@ -27,4 +27,15 @@ interface ExerciseRecordDao {
 	// 查询某天（时间区间内，按开始时间归日）的运动记录；返回 Flow 使界面在数据变化时自动刷新
 	@Query("SELECT * FROM exercise_record WHERE startAt BETWEEN :startMillis AND :endMillis ORDER BY startAt ASC")
 	fun observeBetween(startMillis: Long, endMillis: Long): Flow<List<ExerciseRecord>>
+
+	// ===== 备份支持 =====
+
+	@Query("SELECT * FROM exercise_record")
+	suspend fun getAllOnce(): List<ExerciseRecord>
+
+	@Insert
+	suspend fun insertAll(records: List<ExerciseRecord>)
+
+	@Query("DELETE FROM exercise_record")
+	suspend fun clearAll()
 }

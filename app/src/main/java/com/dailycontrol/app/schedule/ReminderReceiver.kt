@@ -4,6 +4,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import com.dailycontrol.app.backup.BackupManager
 import com.dailycontrol.app.data.db.DailyControlDatabase
 import com.dailycontrol.app.data.entity.MealType
 import com.dailycontrol.app.data.settings.SettingsRepository
@@ -106,6 +107,11 @@ class ReminderReceiver : BroadcastReceiver() {
 				Notifier.sendWakeNotification(
 					context, WakePlanner.DEFAULT_COUNT, 0, isLast = true
 				)
+			}
+			// 每周自动备份：数据写入下载目录后，把下一棒存档并排到一周后
+			ReminderReason.BACKUP_WEEKLY -> {
+				BackupManager.autoBackupToDownloads(context)
+				BackupManager.rollWeeklySchedule(context)
 			}
 			// 待办到点提醒：任务未完成才提醒（宽区间，放在最后兜住）
 			in ReminderReason.TODO_TASK_BASE..ReminderReason.TODO_TASK_BASE + 99999 -> {

@@ -17,6 +17,8 @@ object TimeUtil {
 
 	private val dateFormat: DateTimeFormatter = DateTimeFormatter.ofPattern("M月d日 EEEE", Locale.CHINA)
 
+	private val dateTimeFormat: DateTimeFormatter = DateTimeFormatter.ofPattern("M月d日 HH:mm", Locale.CHINA)
+
 	// 某天 00:00:00.000 对应的 epoch 毫秒
 	fun startOfDayMillis(date: LocalDate): Long {
 		return date.atStartOfDay(zone).toInstant().toEpochMilli()
@@ -38,5 +40,10 @@ object TimeUtil {
 
 	fun formatDate(date: LocalDate): String {
 		return date.format(dateFormat)
+	}
+
+	// 「M月d日 HH:mm」：备份时刻等需要同时展示日期与时间的场合
+	fun formatDateTime(epochMillis: Long): String {
+		return Instant.ofEpochMilli(epochMillis).atZone(zone).format(dateTimeFormat)
 	}
 }

@@ -33,4 +33,7 @@ object ReminderReason {
 	// 同码即同一 PendingIntent，排程会覆盖真实计划的那一声（曾致末声被搬走）
 	const val WAKE_DEBUG_RING_BASE = 200101
 	const val WAKE_DEBUG_LAST = 200104
+
+	// 每周自动备份：到点把全部数据经 MediaStore 写入系统下载目录
+	const val BACKUP_WEEKLY = 6001
 }
