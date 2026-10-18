@@ -22,6 +22,8 @@ com.dailycontrol.app
 │   ├── components/      跨页面公共组件（时间选择弹窗、圆形徽标、确认弹窗）
 │   └── screens/         五个页面 + 各自的表单/卡片
 ├── notify/              通知层：渠道注册与发送（三餐/背单词/规划/待办/起床五个业务渠道 + 通用）
+├── backup/              备份协调层（2026-10-18 新增）：BackupManager——JSON 导出/恢复、
+│                        每周自动备份到下载目录；它要同时指挥数据层与调度层，故独立成层
 ├── schedule/            调度层（第三阶段新增）：所有「定时」都在这
 │   ├── ReminderScheduler  AlarmManager 精确排程封装（未授权精确闹钟时自动退化）
 │   ├── ReminderReason     全部提醒类型的 requestCode 常量表（接收器按它分发）

@@ -9,6 +9,7 @@
 | [architecture.md](architecture.md) | 工程分层、模块与调用关系的大白话说明 | 想知道「代码怎么组织的、改哪里会影响哪里」；每次结构性变化后同步更新 |
 | [env-pitfalls.md](env-pitfalls.md) | 环境陷阱清单：模拟器、真机 HyperOS、工具链踩坑记录，含症状与规避办法 | 交付验收前必须核对；遇到诡异问题先来这里搜，踩到新坑必须追加 |
 | [versioning.md](versioning.md) | 版本号方案与发布流程 | 每次批次提交/阶段收官打 tag 前 |
+| [data-storage.md](data-storage.md) | 数据存储与备份策略：数据位置、备份/恢复机制、换机与升级路径 | 用户问「数据存哪/怎么带走」时；改备份相关代码前 |
 
 ## code/ —— 代码导读（按分层逐文件讲解）
 
@@ -20,7 +21,7 @@
 | [code/schedule-layer.md](code/schedule-layer.md) | 调度层：requestCode 体系、闹钟封装、到点分发、各排程器 |
 | [code/notify-layer.md](code/notify-layer.md) | 通知层：渠道定义与发送逻辑、深链、持续震动 |
 | [code/ui-layer.md](code/ui-layer.md) | 界面层：导航、六页面、滚轮选择器、主题 |
-| [code/util-and-entry.md](code/util-and-entry.md) | 工具层与应用入口：时间工具、时钟跳转、自愈启动 |
+| [code/util-and-entry.md](code/util-and-entry.md) | 工具层、应用入口与备份协调层：时间工具、时钟跳转、自愈启动、BackupManager |
 
 ## reports/ —— 阶段验收报告
 

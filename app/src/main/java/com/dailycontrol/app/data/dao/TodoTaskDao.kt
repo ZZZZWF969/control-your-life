@@ -46,4 +46,12 @@ interface TodoTaskDao {
 	// 一次性取某日全部任务（规划页载入草稿/替换旧任务用）
 	@Query("SELECT * FROM todo_task WHERE taskDateEpochDay = :epochDay ORDER BY startAtMillis IS NULL, startAtMillis ASC")
 	suspend fun getByDate(epochDay: Long): List<TodoTask>
+
+	// ===== 备份支持 =====
+
+	@Query("SELECT * FROM todo_task")
+	suspend fun getAllOnce(): List<TodoTask>
+
+	@Query("DELETE FROM todo_task")
+	suspend fun clearAll()
 }

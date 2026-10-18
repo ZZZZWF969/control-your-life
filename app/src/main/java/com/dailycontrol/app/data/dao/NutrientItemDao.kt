@@ -15,4 +15,12 @@ interface NutrientItemDao {
 	// 保存前先清空该记录的旧明细，再整批写入（整体替换策略）
 	@Query("DELETE FROM nutrient_item WHERE dietRecordId = :recordId")
 	suspend fun deleteByRecordId(recordId: Long)
+
+	// ===== 备份支持 =====
+
+	@Query("SELECT * FROM nutrient_item")
+	suspend fun getAllOnce(): List<NutrientItem>
+
+	@Query("DELETE FROM nutrient_item")
+	suspend fun clearAll()
 }

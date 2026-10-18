@@ -15,6 +15,22 @@
 	<string name="settings_section_launch">跳转应用</string>
 	<string name="vocab_package_label">背单词应用包名</string>
 	<string name="vocab_package_hint">留空表示未配置；真机联调时会自动读取并填入</string>
+
+	<!-- 备份与恢复（2026-10-18 数据存储策略批次） -->
+	<string name="settings_section_backup">备份与恢复</string>
+	<string name="settings_backup_now">导出全部数据</string>
+	<string name="settings_backup_restore">从备份恢复</string>
+	<string name="settings_last_backup_at">上次备份：%1$s</string>
+	<string name="settings_last_backup_never">还没有备份过</string>
+	<string name="settings_backup_hint">每周自动备份到系统「下载」目录（保留最近 %1$d 份）；备份为纯文本 JSON，可用记事本打开检查自己存了什么</string>
+	<string name="settings_simulate_auto_backup">立即执行自动备份</string>
+	<string name="sim_backup_done">已备份到下载目录</string>
+	<string name="backup_done">导出完成</string>
+	<string name="backup_failed">备份失败</string>
+	<string name="backup_bad_file">文件无法识别</string>
+	<string name="backup_restore_confirm_title">恢复备份</string>
+	<string name="backup_restore_confirm_text">备份导出于 %1$s。\n\n将导入：%2$d 条饮食（含 %3$d 行营养素）、%4$d 条运动、%5$d 条待办。\n\n当前数据将被整体替换；已自动在下载目录保存恢复前快照，恢复错了可退回。</string>
+	<string name="restore_done">恢复完成，数据已回填</string>
 	<string name="settings_create_test_todo">创建三分钟后的测试待办</string>
 	<string name="test_todo_scheduled">测试待办已排程，3 分钟后提醒</string>
 	<string name="settings_simulate_meal">1 分钟后模拟早餐询问</string>

@@ -2,6 +2,7 @@ package com.dailycontrol.app.ui.screens
 
 import android.Manifest
 import android.content.Intent
+import android.net.Uri
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -13,9 +14,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
@@ -34,6 +37,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dailycontrol.app.R
+import com.dailycontrol.app.backup.BackupManager
+import com.dailycontrol.app.backup.BackupFormatException
+import com.dailycontrol.app.backup.BackupSummary
 import com.dailycontrol.app.data.db.DailyControlDatabase
 import com.dailycontrol.app.data.entity.DietRecord
 import com.dailycontrol.app.data.entity.ExerciseRecord
@@ -44,6 +50,7 @@ import com.dailycontrol.app.schedule.DailyPlanner
 import com.dailycontrol.app.schedule.ReminderReason
 import com.dailycontrol.app.schedule.ReminderScheduler
 import com.dailycontrol.app.ui.components.TimePickerDialog
+import com.dailycontrol.app.util.TimeUtil
 import kotlinx.coroutines.launch
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -61,6 +68,10 @@ fun SettingsScreen() {
 	var simPlanHint by remember { mutableStateOf(false) }
 	var simWakeHint by remember { mutableStateOf(false) }
 	var simWakeLastHint by remember { mutableStateOf(false) }
+
+	// 备份区状态：结果提示文本 + 恢复流程的预览（选文件解析出、确认后才执行）
+	var backupResult by remember { mutableStateOf<String?>(null) }
+	var restorePreview by remember { mutableStateOf<BackupSummary?>(null) }
 
 	// 订阅持久化设置；用户操作后写入 DataStore，界面即时生效
 	val settings = SettingsRepository.get(context)
@@ -82,8 +93,43 @@ fun SettingsScreen() {
 		}
 	}
 
+	// 手动导出：系统文件选择器定位置，默认文件名带日期
+	val exportLauncher = rememberLauncherForActivityResult(
+		ActivityResultContracts.CreateDocument("application/json")
+	) { uri: Uri? ->
+		if (uri != null) {
+			scope.launch {
+				backupResult = if (BackupManager.exportToUri(context, uri)) {
+					context.getString(R.string.backup_done)
+				} else {
+					context.getString(R.string.backup_failed)
+				}
+			}
+		}
+	}
+
+	// 恢复第一步：选文件读文本并解析校验，坏文件给可读提示、不动任何数据
+	val restoreLauncher = rememberLauncherForActivityResult(
+		ActivityResultContracts.OpenDocument()
+	) { uri: Uri? ->
+		if (uri != null) {
+			scope.launch {
+				backupResult = try {
+					val text = context.contentResolver.openInputStream(uri)?.use {
+						it.readBytes().toString(Charsets.UTF_8)
+					} ?: throw BackupFormatException("文件无法读取")
+					restorePreview = BackupManager.parseAndValidate(text)
+					null
+				} catch (e: BackupFormatException) {
+					context.getString(R.string.backup_bad_file) + "（" + e.message + "）"
+				}
+			}
+		}
+	}
+
 	// 精确闹钟权限状态（只读检查，去系统页授权后回来重进页面刷新）
 	val exactAlarmGranted = remember { ReminderScheduler.canScheduleExact(context) }
+	val lastBackupAt by settings.lastBackupAt.collectAsStateWithLifecycle(initialValue = 0L)
 
 	Column(
 		modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
@@ -163,6 +209,52 @@ fun SettingsScreen() {
 			singleLine = true,
 			modifier = Modifier.fillMaxWidth()
 		)
+
+		HorizontalDivider()
+		Text(text = stringResource(R.string.settings_section_backup), style = MaterialTheme.typography.titleMedium)
+		Text(
+			text = if (lastBackupAt > 0) {
+				stringResource(R.string.settings_last_backup_at, TimeUtil.formatDateTime(lastBackupAt))
+			} else {
+				stringResource(R.string.settings_last_backup_never)
+			},
+			style = MaterialTheme.typography.bodySmall,
+			color = MaterialTheme.colorScheme.onSurfaceVariant
+		)
+		Text(
+			text = stringResource(R.string.settings_backup_hint, 4),
+			style = MaterialTheme.typography.bodySmall,
+			color = MaterialTheme.colorScheme.onSurfaceVariant
+		)
+		Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+			Button(
+				onClick = {
+					backupResult = null
+					val stamp = java.time.LocalDateTime.now()
+						.format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd-HHmm"))
+					exportLauncher.launch("daily-control-backup-$stamp.json")
+				},
+				modifier = Modifier.weight(1f)
+			) {
+				Text(stringResource(R.string.settings_backup_now))
+			}
+			OutlinedButton(
+				onClick = {
+					backupResult = null
+					restoreLauncher.launch(arrayOf("application/json", "text/plain", "application/octet-stream"))
+				},
+				modifier = Modifier.weight(1f)
+			) {
+				Text(stringResource(R.string.settings_backup_restore))
+			}
+		}
+		backupResult?.let { result ->
+			Text(
+				text = result,
+				style = MaterialTheme.typography.bodySmall,
+				color = MaterialTheme.colorScheme.error
+			)
+		}
 
 		HorizontalDivider()
 		Text(text = stringResource(R.string.settings_section_diag), style = MaterialTheme.typography.titleMedium)
@@ -293,6 +385,21 @@ fun SettingsScreen() {
 			)
 		}
 
+		// 立即执行一次自动备份（走与每周闹钟完全相同的下载目录链路），验收与演示用
+		Button(onClick = {
+			scope.launch {
+				val ok = BackupManager.autoBackupToDownloads(context)
+				BackupManager.rollWeeklySchedule(context)
+				backupResult = if (ok) {
+					context.getString(R.string.sim_backup_done)
+				} else {
+					context.getString(R.string.backup_failed)
+				}
+			}
+		}) {
+			Text(stringResource(R.string.settings_simulate_auto_backup))
+		}
+
 		// 1 分钟后模拟早餐询问：走与真实三餐闹钟完全相同的接收器分支，
 		// 用于验证「当天已记录则静默 / 未记录则询问」的两个分支
 		Button(onClick = {
@@ -366,6 +473,41 @@ fun SettingsScreen() {
 		dbCheckResult?.let { result ->
 			Text(text = result, style = MaterialTheme.typography.bodyMedium)
 		}
+	}
+
+	// 恢复确认弹窗：展示备份内容预览，确认后执行（快照在 restore 内部第一步自动生成）
+	restorePreview?.let { summary ->
+		AlertDialog(
+			onDismissRequest = { restorePreview = null },
+			title = { Text(stringResource(R.string.backup_restore_confirm_title)) },
+			text = {
+				Text(
+					stringResource(
+						R.string.backup_restore_confirm_text,
+						TimeUtil.formatDateTime(summary.exportedAt),
+						summary.dietRecords.size,
+						summary.nutrientItems.size,
+						summary.exerciseRecords.size,
+						summary.todoTasks.size
+					)
+				)
+			},
+			confirmButton = {
+				TextButton(onClick = {
+					val toRestore = summary
+					restorePreview = null
+					scope.launch {
+						BackupManager.restore(context, toRestore)
+						backupResult = context.getString(R.string.restore_done)
+					}
+				}) { Text(stringResource(R.string.action_confirm)) }
+			},
+			dismissButton = {
+				TextButton(onClick = { restorePreview = null }) {
+					Text(stringResource(R.string.action_cancel))
+				}
+			}
+		)
 	}
 }
 

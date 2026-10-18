@@ -5,9 +5,11 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
 // 提醒时刻配置：以「当日分钟数」存储（如 570 = 9:30），展示层再转 HH:mm
@@ -69,6 +71,17 @@ class SettingsRepository private constructor(private val context: Context) {
 		prefs[KEY_WAKE_CLOCK_CONFIRMED] ?: ""
 	}
 
+	// 最近一次备份（手动或自动）的时刻：设置页展示用；0 表示从未备份过
+	val lastBackupAt: Flow<Long> = context.dataStore.data.map { prefs ->
+		prefs[KEY_LAST_BACKUP_AT] ?: 0L
+	}
+
+	// 下一次自动备份的计划时刻（周排程的「下一棒」存档）：
+	// 启动自愈按它幂等重排，防止「每次启动一律 now+7天」把备份无限推后
+	val nextAutoBackupAt: Flow<Long> = context.dataStore.data.map { prefs ->
+		prefs[KEY_NEXT_AUTO_BACKUP] ?: 0L
+	}
+
 	suspend fun setThemeMode(mode: ThemeMode) {
 		context.dataStore.edit { prefs ->
 			prefs[KEY_THEME_MODE] = mode.storageName
@@ -115,6 +128,52 @@ class SettingsRepository private constructor(private val context: Context) {
 		context.dataStore.edit { it[KEY_WAKE_CLOCK_CONFIRMED] = dateIso }
 	}
 
+	suspend fun setLastBackupAt(millis: Long) {
+		context.dataStore.edit { it[KEY_LAST_BACKUP_AT] = millis }
+	}
+
+	suspend fun setNextAutoBackupAt(millis: Long) {
+		context.dataStore.edit { it[KEY_NEXT_AUTO_BACKUP] = millis }
+	}
+
+	// ===== 备份支持：设置的全量快照与还原 =====
+	// 键名与 DataStore 键一一对应（字符串化），备份文件里人类可读；
+	// last_backup_at 属于运行痕迹，不入备份
+
+	suspend fun backupSettings(): Map<String, String> {
+		val prefs = context.dataStore.data.first()
+		return buildMap {
+			put("theme_mode", prefs[KEY_THEME_MODE] ?: "system")
+			put("breakfast_minute", (prefs[KEY_BREAKFAST_MINUTE] ?: 570).toString())
+			put("lunch_minute", (prefs[KEY_LUNCH_MINUTE] ?: 810).toString())
+			put("dinner_minute", (prefs[KEY_DINNER_MINUTE] ?: 1170).toString())
+			put("plan_minute", (prefs[KEY_PLAN_MINUTE] ?: 1320).toString())
+			put("vocab_package", prefs[KEY_VOCAB_PACKAGE] ?: "")
+			put("vocab_done_date", prefs[KEY_VOCAB_DONE_DATE] ?: "")
+			put("last_planned_date", prefs[KEY_LAST_PLANNED_DATE] ?: "")
+			put("wake_date", prefs[KEY_WAKE_DATE] ?: "")
+			put("wake_times", prefs[KEY_WAKE_TIMES] ?: "")
+			put("wake_clock_confirmed", prefs[KEY_WAKE_CLOCK_CONFIRMED] ?: "")
+		}
+	}
+
+	// 逐键还原：只写备份里存在的键，类型不符的键跳过（坏备份不损坏现有配置）
+	suspend fun restoreSettings(values: Map<String, String>) {
+		context.dataStore.edit { prefs ->
+			values["theme_mode"]?.let { prefs[KEY_THEME_MODE] = it }
+			values["breakfast_minute"]?.toIntOrNull()?.let { prefs[KEY_BREAKFAST_MINUTE] = it }
+			values["lunch_minute"]?.toIntOrNull()?.let { prefs[KEY_LUNCH_MINUTE] = it }
+			values["dinner_minute"]?.toIntOrNull()?.let { prefs[KEY_DINNER_MINUTE] = it }
+			values["plan_minute"]?.toIntOrNull()?.let { prefs[KEY_PLAN_MINUTE] = it }
+			values["vocab_package"]?.let { prefs[KEY_VOCAB_PACKAGE] = it }
+			values["vocab_done_date"]?.let { prefs[KEY_VOCAB_DONE_DATE] = it }
+			values["last_planned_date"]?.let { prefs[KEY_LAST_PLANNED_DATE] = it }
+			values["wake_date"]?.let { prefs[KEY_WAKE_DATE] = it }
+			values["wake_times"]?.let { prefs[KEY_WAKE_TIMES] = it }
+			values["wake_clock_confirmed"]?.let { prefs[KEY_WAKE_CLOCK_CONFIRMED] = it }
+		}
+	}
+
 	companion object {
 		// DataStore 实例必须全局唯一，用顶层委托挂在 Context 上由系统保证
 		private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
@@ -130,6 +189,8 @@ class SettingsRepository private constructor(private val context: Context) {
 		private val KEY_WAKE_DATE = stringPreferencesKey("wake_date")
 		private val KEY_WAKE_TIMES = stringPreferencesKey("wake_times")
 		private val KEY_WAKE_CLOCK_CONFIRMED = stringPreferencesKey("wake_clock_confirmed")
+		private val KEY_LAST_BACKUP_AT = longPreferencesKey("last_backup_at")
+		private val KEY_NEXT_AUTO_BACKUP = longPreferencesKey("next_auto_backup")
 
 		@Volatile
 		private var instance: SettingsRepository? = null
