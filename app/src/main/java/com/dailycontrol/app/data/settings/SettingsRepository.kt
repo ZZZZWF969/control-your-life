@@ -63,6 +63,12 @@ class SettingsRepository private constructor(private val context: Context) {
 			.map { it.toLong() }
 	}
 
+	// 用户确认「时钟闹钟已开」的唤醒日期：应用读不到系统时钟，靠自记收起提醒入口；
+	// 与 wakePlanDate 不一致（新一天的计划）时入口自动重新出现
+	val wakeClockConfirmedDate: Flow<String> = context.dataStore.data.map { prefs ->
+		prefs[KEY_WAKE_CLOCK_CONFIRMED] ?: ""
+	}
+
 	suspend fun setThemeMode(mode: ThemeMode) {
 		context.dataStore.edit { prefs ->
 			prefs[KEY_THEME_MODE] = mode.storageName
@@ -105,6 +111,10 @@ class SettingsRepository private constructor(private val context: Context) {
 		}
 	}
 
+	suspend fun setWakeClockConfirmedDate(dateIso: String) {
+		context.dataStore.edit { it[KEY_WAKE_CLOCK_CONFIRMED] = dateIso }
+	}
+
 	companion object {
 		// DataStore 实例必须全局唯一，用顶层委托挂在 Context 上由系统保证
 		private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
@@ -119,6 +129,7 @@ class SettingsRepository private constructor(private val context: Context) {
 		private val KEY_LAST_PLANNED_DATE = stringPreferencesKey("last_planned_date")
 		private val KEY_WAKE_DATE = stringPreferencesKey("wake_date")
 		private val KEY_WAKE_TIMES = stringPreferencesKey("wake_times")
+		private val KEY_WAKE_CLOCK_CONFIRMED = stringPreferencesKey("wake_clock_confirmed")
 
 		@Volatile
 		private var instance: SettingsRepository? = null

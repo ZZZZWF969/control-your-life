@@ -23,6 +23,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -70,6 +71,10 @@ fun RemindScreen(onGoToPlan: () -> Unit) {
 	val wakePlanDate by settings.wakePlanDate.collectAsStateWithLifecycle(initialValue = "")
 	val wakePlanTimes by settings.wakePlanTimes.collectAsStateWithLifecycle(initialValue = emptyList())
 	val wakeTomorrow = wakePlanDate == tomorrow.toString() && wakePlanTimes.isNotEmpty()
+	// 应用读不到系统时钟，「闹钟已开」由用户自记（方案①，2026-10-18 确认）：
+	// 点过即收起入口；新一天的计划日期不同，入口自动重新出现
+	val wakeClockConfirmed by settings.wakeClockConfirmedDate.collectAsStateWithLifecycle(initialValue = "")
+	val showClockEntry = wakeTomorrow && wakeClockConfirmed != wakePlanDate
 
 	Column(
 		modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
@@ -150,22 +155,33 @@ fun RemindScreen(onGoToPlan: () -> Unit) {
 			tomorrowTasks.forEach { task -> TodoTaskRow(task) }
 		}
 
-		// 去时钟入口（双保险方案）：明天有唤醒计划时常驻显示，保存时的引导错过也能再跳
-		if (wakeTomorrow) {
-			OutlinedButton(
-				onClick = {
-					// 个别 ROM 无时钟应用/不支持 SHOW_ALARMS 时给出可见反馈，便于真机排查
-					if (!ClockLinker.openAlarmList(context)) {
-						Toast.makeText(
-							context,
-							context.getString(R.string.clock_open_failed),
-							Toast.LENGTH_SHORT
-						).show()
-					}
-				},
-				modifier = Modifier.fillMaxWidth()
+		// 去时钟入口（双保险方案）：明天有唤醒计划且未确认「已开」时显示
+		if (showClockEntry) {
+			Row(
+				modifier = Modifier.fillMaxWidth(),
+				horizontalArrangement = Arrangement.spacedBy(8.dp),
+				verticalAlignment = Alignment.CenterVertically
 			) {
-				Text(stringResource(R.string.remind_open_clock_entry, TimeUtil.formatTime(wakePlanTimes.last())))
+				OutlinedButton(
+					onClick = {
+						// 个别 ROM 无时钟应用/不支持 SHOW_ALARMS 时给出可见反馈，便于真机排查
+						if (!ClockLinker.openAlarmList(context)) {
+							Toast.makeText(
+								context,
+								context.getString(R.string.clock_open_failed),
+								Toast.LENGTH_SHORT
+							).show()
+						}
+					},
+					modifier = Modifier.weight(1f)
+				) {
+					Text(stringResource(R.string.remind_open_clock_entry, TimeUtil.formatTime(wakePlanTimes.last())))
+				}
+				TextButton(onClick = {
+					scope.launch { settings.setWakeClockConfirmedDate(wakePlanDate) }
+				}) {
+					Text(stringResource(R.string.remind_clock_confirmed))
+				}
 			}
 		}
 

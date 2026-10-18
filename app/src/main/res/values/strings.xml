@@ -80,6 +80,7 @@
 	<string name="plan_wake_guide_go">去时钟</string>
 	<string name="plan_wake_guide_later">稍后</string>
 	<string name="remind_open_clock_entry">明早有唤醒计划，去时钟开闹钟（建议 %1$s）</string>
+	<string name="remind_clock_confirmed">闹钟已开 ✓</string>
 	<string name="clock_open_failed">未找到时钟应用或该机型不支持此入口</string>
 	<string name="wake_notify_last_text">末声：系统闹钟此刻应已在响，若没响说明时钟闹钟未开，点「检查时钟闹钟」去补开</string>
 	<string name="wake_action_check_clock">检查时钟闹钟</string>

@@ -54,6 +54,7 @@ import com.dailycontrol.app.schedule.WakePlanner
 import com.dailycontrol.app.ui.components.TimePickerDialog
 import com.dailycontrol.app.util.ClockLinker
 import com.dailycontrol.app.util.TimeUtil
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.LocalDate
@@ -103,6 +104,14 @@ fun PlanScreen(onDone: () -> Unit) {
 				aheadMinutes = task.remindAheadMinutes
 			)
 		}.ifEmpty { listOf(TodoDraft()) }
+
+		// 起床选择同样回填：存档里有该日唤醒计划就预选早八/早十，
+		// 避免再次保存时默认「无课」把已有唤醒默默清掉（真机测试 5 发现）
+		wakePick = if (forTomorrow) {
+			loadStoredWakePick(context, targetDate(forTomorrow))
+		} else {
+			WakePick.NONE
+		}
 	}
 
 	Column(
@@ -283,6 +292,25 @@ private fun lastRingTimeLabel(pick: WakePick): String {
 	return if (pick == WakePick.EARLY8) "08:00" else "09:45"
 }
 
+// 从存档回填起床选择：该日已有唤醒计划时按末声时刻判定早八/早十，否则无课
+private suspend fun loadStoredWakePick(context: android.content.Context, date: LocalDate): WakePick {
+	val repo = SettingsRepository.get(context)
+	if (repo.wakePlanDate.first() != date.toString()) {
+		return WakePick.NONE
+	}
+	val times = repo.wakePlanTimes.first()
+	val lastTime = times.lastOrNull()
+		?.let { Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalTime() }
+		?: return WakePick.NONE
+	val lastMinute = lastTime.hour * 60 + lastTime.minute
+	// 末声 08:00 为早八、09:45 为早十；其余异常值视为无存档
+	return when (lastMinute) {
+		480 -> WakePick.EARLY8
+		585 -> WakePick.EARLY10
+		else -> WakePick.NONE
+	}
+}
+
 private fun targetDate(forTomorrow: Boolean): LocalDate {
 	return if (forTomorrow) LocalDate.now().plusDays(1) else LocalDate.now()
 }
@@ -339,16 +367,15 @@ private suspend fun savePlan(
 		ReminderScheduler.cancel(context, ReminderReason.TODO_TASK_BASE + task.id.toInt())
 	}
 
-	// 起床唤醒（2026-10-17 真机决策：全应用内渐进唤醒，不写系统时钟）：
-	// 仅当为「明天」规划时排 N 声；选无课或当天规划则撤销全部
+	// 起床唤醒（2026-10-18 双保险方案）：只在为「明天」规划时管理——
+	// 早八/早十撤旧排新，无课撤销；保存「今天」的规划完全不动唤醒
+	//（此前当日保存会连带撤销明天的唤醒，补记待办时把闹钟弄丢，真机测试 5 发现）
 	if (forTomorrow) {
 		when (wakePick) {
 			WakePick.EARLY8 -> WakePlanner.plan(context, date, morningClass = true)
 			WakePick.EARLY10 -> WakePlanner.plan(context, date, morningClass = false)
 			WakePick.NONE -> WakePlanner.cancel(context)
 		}
-	} else {
-		WakePlanner.cancel(context)
 	}
 
 	// 标记今晚已完成规划（22:00 未规划提醒与 23:00 二次提醒据此判断）
