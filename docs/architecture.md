@@ -2,7 +2,7 @@
 
 > 目的：让你随时能看懂工程分了几层、代码怎么协作、改哪里会影响哪里。
 > 概念都用大白话解释；本文随结构性变化同步更新（项目维护约定）。
-> 更新时间：2026-10-19（页面整合批次一：提醒页并入今日页，底栏四格）
+> 更新时间：2026-10-19（交互专项批次二至四：可发现性反馈、设置页重排、首启向导 OnboardingScreen）
 
 ## 一、总览
 
@@ -88,7 +88,8 @@ MainActivity（容器）
 | 记录 | `RecordScreen.kt` + `DietEntrySheet` / `DietRecordCard` / `ExerciseEntrySheet` / `ExerciseRecordCard` | 按日管理与增删改查 |
 | 规划 | `PlanScreen.kt`（不在底栏，今日页入口/通知深链进入） | 为今天或明天安排待办与起床唤醒；保存后引导去时钟开闹钟（双保险） |
 | AI | `AiScreen.kt` | 占位（第四阶段） |
-| 设置 | `SettingsScreen.kt` | 外观（主题三档）、提醒时间、跳转应用、备份恢复、链路自检与调试工具 |
+| 向导 | `OnboardingScreen.kt`（2026-10-19 批次四） | 首启权限引导：5 步分页，未完成时整屏替代主界面；完成/跳过后由 DataStore 标志控制不再出现 |
+| 设置 | `SettingsScreen.kt` | 外观（主题三档）、提醒时间、跳转应用、备份恢复、重新查看引导、调试工具（折叠） |
 
 （原「提醒」页 `RemindScreen.kt` 已删除：背单词卡迁为 `TodayVocabCard`，待办清单迁为 `TodayTodoSection` 并新增已完成沉底与反勾恢复闹钟，去时钟/去规划入口迁入今日页。）
 
@@ -98,5 +99,5 @@ MainActivity（容器）
 
 - **第三阶段 提醒系统**：新增调度能力（闹钟/定时），挂点在 `notify/`（通知发送已在位）+ 新的 `schedule/`（计划中：AlarmManager 调度、三餐/规划/背单词的规则存 Room 新表）；
 - **第四阶段 AI**：新增网络层（OpenAI 兼容客户端 + API Key 存 DataStore），输入来自 data 层的汇总查询，输出为报告页；
-- **交互整合后续批次（2026-10-19 规划，见 docs/interaction-redesign.md）**：批次2 可发现性与反馈（卡片箭头、删除收进表单、Snackbar）、批次3 设置页分组与调试折叠、批次4 首启权限引导向导（OnboardingScreen 新页面）；
+- **交互整合后续批次（2026-10-19 规划，见 docs/interaction-redesign.md）**：批次2 可发现性与反馈、批次3 设置页重排、批次4 首启向导——**✅ 已全部完成（v0.3.10）**；
 - UI 精修专项（见 goal.md TODO）：只动 `ui/theme/` 与各页面样式，不碰数据层。
