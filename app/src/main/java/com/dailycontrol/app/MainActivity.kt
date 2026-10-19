@@ -51,7 +51,6 @@ class MainActivity : ComponentActivity() {
 		const val EXTRA_ROUTE = "navigate_route"
 		const val ROUTE_TODAY = "today"
 		const val ROUTE_RECORD = "record"
-		const val ROUTE_REMIND = "remind"
 		const val ROUTE_PLAN = "plan"
 	}
 }

@@ -51,24 +51,17 @@
 
 	<string name="tab_today">今日</string>
 	<string name="tab_record">记录</string>
-	<string name="tab_remind">提醒</string>
 	<string name="tab_ai">AI</string>
 	<string name="tab_settings">设置</string>
 
 	<string name="placeholder_today_desc">今日概览：汇总当天饮食、运动与待办完成情况（第二阶段实现）</string>
 	<string name="placeholder_record_desc">饮食与运动的手动记录入口（第二阶段实现）</string>
-	<string name="placeholder_remind_desc">提醒规则与闹钟管理（第三阶段实现）</string>
 
-	<!-- 提醒页 -->
-	<string name="vocab_status_title">背单词</string>
-	<string name="vocab_status_undone">今日还未背，完成前每 1.5 小时提醒一次（至 23:00）</string>
-	<string name="vocab_status_done">今日已完成 ✓ 明天 10:00 见</string>
+	<!-- 今日页（2026-10-19 页面整合：提醒页职责并入） -->
 	<string name="vocab_notify_title">该背单词啦</string>
 	<string name="vocab_notify_text">背完回到应用点「今日已背」，今天的提醒就到此为止</string>
 	<string name="vocab_action_done">今日已背</string>
 	<string name="vocab_action_go">去背单词</string>
-	<string name="remind_plan_placeholder_title">晚间规划</string>
-	<string name="remind_plan_placeholder_desc">每天 22:00 提醒规划明天：待办、早八/早十闹钟（下一批实现）</string>
 	<string name="settings_simulate_vocab">30 秒后模拟背单词提醒</string>
 	<string name="sim_vocab_scheduled">已排程，30 秒后模拟触发（走真实循环逻辑）</string>
 	<string name="settings_simulate_plan">30 秒后模拟晚间规划提醒</string>
@@ -116,11 +109,9 @@
 	<string name="plan_notify_text">点开安排明天的待办与起床闹钟，只要一分钟</string>
 	<string name="todo_notify_text_with_time">将于 %1$s 开始，别忘了</string>
 	<string name="todo_notify_text">到点啦，别忘了这件事</string>
+	<string name="todo_remind_past">提醒时刻已过，不再补排提醒</string>
 
-	<!-- 提醒页·待办清单 -->
-	<string name="remind_section_today_todo">今日待办</string>
-	<string name="remind_section_tomorrow_todo">明日待办</string>
-	<string name="remind_empty_todo">暂无待办</string>
+	<!-- 待办清单（今日页内） -->
 	<string name="remind_plan_entry">去规划今天 / 明天</string>
 	<string name="confirm_delete_todo_title">删除待办</string>
 	<string name="confirm_delete_todo_text">确定删除这条待办吗？连同它的提醒一起取消。</string>
@@ -137,8 +128,12 @@
 	<string name="today_meal_missing">未记录</string>
 	<string name="today_section_diet">今日饮食</string>
 	<string name="today_section_exercise">今日运动</string>
-	<string name="today_empty_hint">今天还没有记录</string>
-	<string name="today_go_record">去记一笔</string>
+	<string name="today_section_todo">今日待办</string>
+	<string name="today_empty_hint">今天还没有记录，点右下角「记一笔」开始</string>
+	<string name="today_view_all">查看全部（%1$d 条）</string>
+	<string name="today_vocab_undone">今天还没背单词</string>
+	<string name="today_vocab_done">今天已背单词 ✓</string>
+	<string name="today_todo_empty">今天没有待办，可以提前去规划</string>
 	<string name="placeholder_ai_desc">AI 生活建议与每日报告（第四阶段实现）</string>
 
 	<string name="settings_desc">此页将承载提醒时间、AI 接口、背单词目标等配置；当前提供外观与链路自检设置</string>
