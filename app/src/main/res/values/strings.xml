@@ -29,6 +29,13 @@
 	<string name="backup_failed">备份失败</string>
 	<string name="backup_bad_file">文件无法识别</string>
 	<string name="backup_restore_confirm_title">恢复备份</string>
+	<string name="backup_list_title">选择备份</string>
+	<string name="backup_list_empty">下载目录里还没有本应用的备份；可点下方从其他位置选择，或先执行一次备份</string>
+	<string name="backup_pick_other">从其他位置选择文件…</string>
+	<string name="backup_unreadable">无法读取（文件可能已损坏）</string>
+	<string name="backup_kind_backup">备份</string>
+	<string name="backup_kind_snapshot">恢复前快照</string>
+	<string name="backup_entry_summary">%1$d 饮食 · %2$d 运动 · %3$d 待办</string>
 	<string name="backup_restore_confirm_text">备份导出于 %1$s。\n\n将导入：%2$d 条饮食（含 %3$d 行营养素）、%4$d 条运动、%5$d 条待办。\n\n当前数据将被整体替换；已自动在下载目录保存恢复前快照，恢复错了可退回。</string>
 	<string name="restore_done">恢复完成，数据已回填</string>
 	<string name="settings_create_test_todo">创建三分钟后的测试待办</string>

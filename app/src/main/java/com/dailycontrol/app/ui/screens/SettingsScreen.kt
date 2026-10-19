@@ -6,6 +6,7 @@ import android.net.Uri
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -72,6 +73,9 @@ fun SettingsScreen() {
 	// 备份区状态：结果提示文本 + 恢复流程的预览（选文件解析出、确认后才执行）
 	var backupResult by remember { mutableStateOf<String?>(null) }
 	var restorePreview by remember { mutableStateOf<BackupSummary?>(null) }
+	// 应用内备份清单：null=未打开；打开后逐项尝试解析，summary 为 null 表示该文件已损坏
+	var showBackupList by remember { mutableStateOf(false) }
+	var backupEntries by remember { mutableStateOf<List<Pair<BackupManager.BackupFileInfo, BackupSummary?>>>(emptyList()) }
 
 	// 订阅持久化设置；用户操作后写入 DataStore，界面即时生效
 	val settings = SettingsRepository.get(context)
@@ -241,7 +245,13 @@ fun SettingsScreen() {
 			OutlinedButton(
 				onClick = {
 					backupResult = null
-					restoreLauncher.launch(arrayOf("application/json", "text/plain", "application/octet-stream"))
+					// 先检索下载目录并逐份解析摘要，再弹应用内清单（用户不用翻系统目录）
+					scope.launch {
+						backupEntries = BackupManager.listDownloadBackups(context).map { info ->
+							info to runCatching { BackupManager.readSummary(context, info.uri) }.getOrNull()
+						}
+						showBackupList = true
+					}
 				},
 				modifier = Modifier.weight(1f)
 			) {
@@ -473,6 +483,76 @@ fun SettingsScreen() {
 		dbCheckResult?.let { result ->
 			Text(text = result, style = MaterialTheme.typography.bodyMedium)
 		}
+	}
+
+	// 应用内备份清单弹窗：列出下载目录里本应用的备份与摘要；
+	// 底部保留系统文件选择器兜底（备份可能存在网盘/其他目录）
+	if (showBackupList) {
+		AlertDialog(
+			onDismissRequest = { showBackupList = false },
+			title = { Text(stringResource(R.string.backup_list_title)) },
+			text = {
+				Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+					if (backupEntries.isEmpty()) {
+						Text(
+							text = stringResource(R.string.backup_list_empty),
+							style = MaterialTheme.typography.bodySmall,
+							color = MaterialTheme.colorScheme.onSurfaceVariant
+						)
+					} else {
+						backupEntries.forEach { (info, summary) ->
+							Column(
+								modifier = Modifier
+									.fillMaxWidth()
+									.clickable(enabled = summary != null) {
+										showBackupList = false
+										restorePreview = summary
+									}
+									.padding(vertical = 10.dp)
+							) {
+								val kindRes = if (info.displayName.startsWith("daily-control-restore-snapshot-")) {
+									R.string.backup_kind_snapshot
+								} else {
+									R.string.backup_kind_backup
+								}
+								Text(
+									text = stringResource(kindRes) + " · " + TimeUtil.formatDateTime(info.addedAtMillis),
+									style = MaterialTheme.typography.titleSmall,
+									color = if (summary != null) MaterialTheme.colorScheme.onSurface
+									else MaterialTheme.colorScheme.onSurfaceVariant
+								)
+								Text(
+									text = if (summary != null) {
+										stringResource(
+											R.string.backup_entry_summary,
+											summary.dietRecords.size,
+											summary.exerciseRecords.size,
+											summary.todoTasks.size
+										)
+									} else {
+										stringResource(R.string.backup_unreadable) + "（" + info.displayName + "）"
+									},
+									style = MaterialTheme.typography.bodySmall,
+									color = MaterialTheme.colorScheme.onSurfaceVariant
+								)
+							}
+						}
+					}
+					TextButton(onClick = {
+						showBackupList = false
+						restoreLauncher.launch(arrayOf("application/json", "text/plain", "application/octet-stream"))
+					}) {
+						Text(stringResource(R.string.backup_pick_other))
+					}
+				}
+			},
+			confirmButton = {},
+			dismissButton = {
+				TextButton(onClick = { showBackupList = false }) {
+					Text(stringResource(R.string.action_cancel))
+				}
+			}
+		)
 	}
 
 	// 恢复确认弹窗：展示备份内容预览，确认后执行（快照在 restore 内部第一步自动生成）

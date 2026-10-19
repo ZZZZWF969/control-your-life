@@ -157,6 +157,57 @@ object BackupManager {
 
 	// ---------- 恢复 ----------
 
+	// 下载目录里一个备份文件的索引信息（恢复清单用；内容按需再读）
+	data class BackupFileInfo(
+		val uri: Uri,
+		val displayName: String,
+		val addedAtMillis: Long
+	)
+
+	// 检索下载目录里本应用的备份：按命名前缀识别（自动备份、恢复前快照、
+	// 手动导出到 Download 的文件全部命中），按入库时间倒序。
+	// 只会看到本应用自己创建的文件（MediaStore 对非媒体文件按归属过滤），无需存储权限
+	fun listDownloadBackups(context: Context): List<BackupFileInfo> {
+		val result = mutableListOf<BackupFileInfo>()
+		runCatching {
+			val collection = MediaStore.Downloads.EXTERNAL_CONTENT_URI
+			val selection = "${MediaStore.MediaColumns.DISPLAY_NAME} LIKE 'daily-control-%'"
+			context.contentResolver.query(
+				collection,
+				arrayOf(
+					MediaStore.MediaColumns._ID,
+					MediaStore.MediaColumns.DISPLAY_NAME,
+					MediaStore.MediaColumns.DATE_ADDED
+				),
+				selection,
+				null,
+				"${MediaStore.MediaColumns.DATE_ADDED} DESC"
+			)?.use { cursor ->
+				val idCol = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns._ID)
+				val nameCol = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.DISPLAY_NAME)
+				val addedCol = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.DATE_ADDED)
+				while (cursor.moveToNext()) {
+					result.add(
+						BackupFileInfo(
+							uri = Uri.withAppendedPath(collection, cursor.getLong(idCol).toString()),
+							displayName = cursor.getString(nameCol) ?: "?",
+							addedAtMillis = cursor.getLong(addedCol) * 1000L
+						)
+					)
+				}
+			}
+		}
+		return result
+	}
+
+	// 读取单个备份并解析为摘要；坏文件抛 BackupFormatException（列表行标「无法读取」）
+	fun readSummary(context: Context, uri: Uri): BackupSummary {
+		val text = context.contentResolver.openInputStream(uri)?.use {
+			it.readBytes().toString(Charsets.UTF_8)
+		} ?: throw BackupFormatException("文件无法读取")
+		return parseAndValidate(text)
+	}
+
 	// 解析并校验备份文件：坏文件抛 BackupFormatException（界面转成提示，不崩溃）
 	fun parseAndValidate(jsonText: String): BackupSummary {
 		val root = try {
