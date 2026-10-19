@@ -94,7 +94,7 @@ object Notifier {
 	}
 
 	// 背单词循环提醒：通知栏只做「去背单词」快速入口（包名已配置且应用存在时）；
-	// 「今日已背」必须进应用确认（点击通知进提醒页），防止误触（2026-10-17 用户确认）
+	// 「今日已背」必须进应用确认（点击通知进今日页），防止误触（2026-10-17 用户确认）
 	suspend fun sendVocabNotification(context: Context) {
 		if (!hasPostPermission(context)) {
 			return
@@ -103,7 +103,7 @@ object Notifier {
 			.setSmallIcon(R.drawable.ic_stat_dailycontrol)
 			.setContentTitle(context.getString(R.string.vocab_notify_title))
 			.setContentText(context.getString(R.string.vocab_notify_text))
-			.setContentIntent(buildTapIntent(context, MainActivity.ROUTE_REMIND, NOTIFY_ID_WORD))
+			.setContentIntent(buildTapIntent(context, MainActivity.ROUTE_TODAY, NOTIFY_ID_WORD))
 			.setAutoCancel(true)
 
 		// 配置了跳转包名且设备上存在该应用时，追加「去背单词」动作
@@ -149,7 +149,7 @@ object Notifier {
 		NotificationManagerCompat.from(context).notify(NOTIFY_ID_PLAN, notification)
 	}
 
-	// 待办到点提醒：任务名 + 开始时间；点击深链到提醒页（任务清单在那）
+	// 待办到点提醒：任务名 + 开始时间；点击深链到今日页（任务清单在那）
 	fun sendTodoTaskNotification(context: Context, task: TodoTask) {
 		if (!hasPostPermission(context)) {
 			return
@@ -168,7 +168,7 @@ object Notifier {
 			.setContentIntent(
 				buildTapIntent(
 					context,
-					MainActivity.ROUTE_REMIND,
+					MainActivity.ROUTE_TODAY,
 					(NOTIFY_ID_TODO_BASE + task.id).toInt()
 				)
 			)
@@ -192,7 +192,7 @@ object Notifier {
 			.setSmallIcon(R.drawable.ic_stat_dailycontrol)
 			.setContentTitle(context.getString(R.string.wake_notify_title))
 			.setContentText(text)
-			.setContentIntent(buildTapIntent(context, MainActivity.ROUTE_REMIND, NOTIFY_ID_WAKE))
+			.setContentIntent(buildTapIntent(context, MainActivity.ROUTE_TODAY, NOTIFY_ID_WAKE))
 			.setAutoCancel(true)
 			.setCategory(NotificationCompat.CATEGORY_ALARM)
 		if (isLast) {

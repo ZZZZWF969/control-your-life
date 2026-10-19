@@ -9,20 +9,16 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.filled.KeyboardArrowRight
-import androidx.compose.material3.Card
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -35,27 +31,25 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.room.withTransaction
 import com.dailycontrol.app.R
 import com.dailycontrol.app.data.db.DailyControlDatabase
 import com.dailycontrol.app.data.entity.DietRecord
 import com.dailycontrol.app.data.entity.ExerciseRecord
 import com.dailycontrol.app.data.entity.MealType
 import com.dailycontrol.app.data.entity.NutrientItem
+import com.dailycontrol.app.ui.RecordSaver
 import com.dailycontrol.app.ui.components.ConfirmDialog
-import com.dailycontrol.app.ui.components.TypeBadge
+import com.dailycontrol.app.ui.components.EntryTypePickerSheet
 import com.dailycontrol.app.util.TimeUtil
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 
 // 记录页：按日查看与管理饮食、运动记录，右下角「记一笔」新增
 // initialMeal：三餐询问通知深链带来的预选餐别，进入后自动弹出该餐表单
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RecordScreen(initialMeal: String? = null) {
 	val context = LocalContext.current
@@ -178,40 +172,21 @@ fun RecordScreen(initialMeal: String? = null) {
 		}
 	}
 
-	// 「记一笔」的类型选择弹层：饮食可用，运动留待下一批
+	// 「记一笔」的类型选择弹层（公共组件，与今日页共用）
 	if (showTypePicker) {
-		ModalBottomSheet(onDismissRequest = { showTypePicker = false }) {
-			Column(
-				modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(bottom = 32.dp),
-				verticalArrangement = Arrangement.spacedBy(8.dp)
-			) {
-				Text(
-					text = stringResource(R.string.record_choose_type),
-					style = MaterialTheme.typography.titleLarge
-				)
-				Card(
-					onClick = {
-						showTypePicker = false
-						dietSheetRecord = null
-						showDietSheet = true
-					},
-					modifier = Modifier.fillMaxWidth()
-				) {
-					EntryTypeRow(badgeChar = "餐", badgeColor = Color(0xFFC2F0E9), charColor = Color(0xFF042F2C), titleRes = R.string.record_type_diet, descRes = R.string.record_type_diet_desc, enabled = true)
-				}
-				// 运动入口
-				Card(
-					onClick = {
-						showTypePicker = false
-						exerciseSheetRecord = null
-						showExerciseSheet = true
-					},
-					modifier = Modifier.fillMaxWidth()
-				) {
-					EntryTypeRow(badgeChar = "动", badgeColor = Color(0xFFC7CBF8), charColor = Color(0xFF1B1F65), titleRes = R.string.record_type_exercise, descRes = R.string.record_type_exercise_desc, enabled = true)
-				}
+		EntryTypePickerSheet(
+			onDismiss = { showTypePicker = false },
+			onPickDiet = {
+				showTypePicker = false
+				dietSheetRecord = null
+				showDietSheet = true
+			},
+			onPickExercise = {
+				showTypePicker = false
+				exerciseSheetRecord = null
+				showExerciseSheet = true
 			}
-		}
+		)
 	}
 
 	if (showDietSheet) {
@@ -223,25 +198,8 @@ fun RecordScreen(initialMeal: String? = null) {
 			onDismiss = { showDietSheet = false },
 			onSave = { record, nutrientItems ->
 				showDietSheet = false
-				// 记录与营养素明细在同一事务里落库：要么全部成功，要么全部不动
-				scope.launch {
-					db.withTransaction {
-						if (record.id == 0L) {
-							val newId = db.dietRecordDao().insert(record)
-							if (nutrientItems.isNotEmpty()) {
-								db.nutrientItemDao().insertAll(nutrientItems.map { it.copy(dietRecordId = newId) })
-							}
-						} else {
-							db.dietRecordDao().update(record)
-							db.nutrientItemDao().deleteByRecordId(record.id)
-							if (nutrientItems.isNotEmpty()) {
-								db.nutrientItemDao().insertAll(
-									nutrientItems.map { it.copy(id = 0L, dietRecordId = record.id) }
-								)
-							}
-						}
-					}
-				}
+				// 保存逻辑在公共 RecordSaver：记录与营养素明细同事务落库
+				scope.launch { RecordSaver.saveDietRecordWithItems(db, record, nutrientItems) }
 			}
 		)
 	}
@@ -253,13 +211,7 @@ fun RecordScreen(initialMeal: String? = null) {
 			onDismiss = { showExerciseSheet = false },
 			onSave = { record ->
 				showExerciseSheet = false
-				scope.launch {
-					if (record.id == 0L) {
-						db.exerciseRecordDao().insert(record)
-					} else {
-						db.exerciseRecordDao().update(record)
-					}
-				}
+				scope.launch { RecordSaver.saveExerciseRecord(db, record) }
 			}
 		)
 	}
@@ -315,37 +267,6 @@ private fun DateBar(date: LocalDate, onDateChange: (LocalDate) -> Unit) {
 		}
 		IconButton(onClick = { onDateChange(date.plusDays(1)) }) {
 			Icon(Icons.Filled.KeyboardArrowRight, contentDescription = stringResource(R.string.record_next_day))
-		}
-	}
-}
-
-// 类型选择弹层里的一行：圆形字标 + 标题 + 描述；enabled=false 时整体降透明度
-@Composable
-private fun EntryTypeRow(
-	badgeChar: String,
-	badgeColor: Color,
-	charColor: Color,
-	titleRes: Int,
-	descRes: Int,
-	enabled: Boolean
-) {
-	Row(
-		modifier = Modifier.fillMaxWidth().padding(16.dp),
-		verticalAlignment = Alignment.CenterVertically
-	) {
-		TypeBadge(badgeChar = badgeChar, background = badgeColor, content = charColor)
-		Spacer(modifier = Modifier.size(14.dp))
-		Column(modifier = Modifier.weight(1f)) {
-			Text(
-				text = stringResource(titleRes),
-				style = MaterialTheme.typography.titleSmall,
-				color = MaterialTheme.colorScheme.onSurface.copy(alpha = if (enabled) 1f else 0.5f)
-			)
-			Text(
-				text = stringResource(descRes),
-				style = MaterialTheme.typography.bodySmall,
-				color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = if (enabled) 1f else 0.5f)
-			)
 		}
 	}
 }

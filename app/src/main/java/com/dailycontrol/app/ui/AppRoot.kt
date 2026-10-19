@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Icon
@@ -29,11 +28,11 @@ import com.dailycontrol.app.R
 import com.dailycontrol.app.ui.screens.AiScreen
 import com.dailycontrol.app.ui.screens.PlanScreen
 import com.dailycontrol.app.ui.screens.RecordScreen
-import com.dailycontrol.app.ui.screens.RemindScreen
 import com.dailycontrol.app.ui.screens.SettingsScreen
 import com.dailycontrol.app.ui.screens.TodayScreen
 
 // 底部导航的目标页定义：路由名 + 图标 + 标题资源
+// 2026-10-19 页面整合：提醒页取消（职责并入今日页），底栏四格
 private data class NavDestination(
 	val route: String,
 	val icon: ImageVector,
@@ -43,7 +42,6 @@ private data class NavDestination(
 private val navDestinations = listOf(
 	NavDestination("today", Icons.Filled.Home, R.string.tab_today),
 	NavDestination("record", Icons.AutoMirrored.Filled.List, R.string.tab_record),
-	NavDestination("remind", Icons.Filled.Notifications, R.string.tab_remind),
 	NavDestination("ai", Icons.Filled.Star, R.string.tab_ai),
 	NavDestination("settings", Icons.Filled.Settings, R.string.tab_settings)
 )
@@ -97,11 +95,18 @@ fun DailyControlAppRoot(
 			modifier = Modifier.padding(innerPadding)
 		) {
 			composable("today") {
-				TodayScreen(onGoToRecord = {
-					navController.navigate("record") {
-						launchSingleTop = true
+				TodayScreen(
+					onGoToRecord = {
+						navController.navigate("record") {
+							launchSingleTop = true
+						}
+					},
+					onGoToPlan = {
+						navController.navigate("plan") {
+							launchSingleTop = true
+						}
 					}
-				})
+				)
 			}
 			// record 路由支持可选餐别参数：三餐询问通知深链 record?meal=breakfast 直接弹预填表单
 			composable(
@@ -115,13 +120,6 @@ fun DailyControlAppRoot(
 				)
 			) { entry ->
 				RecordScreen(initialMeal = entry.arguments?.getString("meal"))
-			}
-			composable("remind") {
-				RemindScreen(onGoToPlan = {
-					navController.navigate("plan") {
-						launchSingleTop = true
-					}
-				})
 			}
 			composable("ai") { AiScreen() }
 			composable("settings") { SettingsScreen() }
