@@ -19,3 +19,4 @@ build-log.txt
 AGENTS.md
 # 本机数据备份快照（含个人生活数据，严禁入库）
 data-backups/
+script/auto-oper/*.xml
