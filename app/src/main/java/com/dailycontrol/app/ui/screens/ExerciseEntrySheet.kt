@@ -17,6 +17,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -27,6 +28,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.dailycontrol.app.R
 import com.dailycontrol.app.data.entity.ExerciseRecord
+import com.dailycontrol.app.ui.components.ConfirmDialog
 import com.dailycontrol.app.ui.components.TimePickerDialog
 import com.dailycontrol.app.util.TimeUtil
 import java.time.Duration
@@ -47,13 +49,15 @@ private val quickTypes = listOf(
 
 // 运动录入/编辑表单（底部弹层）：initialRecord 非空即为编辑模式，date 为所属日期
 // 校验规则：结束时间必须晚于开始时间（本阶段运动按开始时间归日，不支持跨天时段）
+// onDelete：编辑模式下的删除入口（二次确认在表单内完成，2026-10-19 批次2）
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun ExerciseEntrySheet(
 	initialRecord: ExerciseRecord?,
 	date: LocalDate,
 	onDismiss: () -> Unit,
-	onSave: (ExerciseRecord) -> Unit
+	onSave: (ExerciseRecord) -> Unit,
+	onDelete: (() -> Unit)? = null
 ) {
 	val isEditing = initialRecord != null
 	val zone = ZoneId.systemDefault()
@@ -178,6 +182,31 @@ fun ExerciseEntrySheet(
 				singleLine = true,
 				modifier = Modifier.fillMaxWidth()
 			)
+
+			// 编辑模式才有删除；红色弱化样式 + 二次确认（删除是低频危险操作）
+			if (isEditing && onDelete != null) {
+				var confirmingDelete by remember { mutableStateOf(false) }
+				TextButton(
+					onClick = { confirmingDelete = true },
+					modifier = Modifier.fillMaxWidth()
+				) {
+					Text(
+						text = stringResource(R.string.action_delete_record),
+						color = MaterialTheme.colorScheme.error
+					)
+				}
+				if (confirmingDelete) {
+					ConfirmDialog(
+						title = stringResource(R.string.confirm_delete_ex_title),
+						text = stringResource(R.string.confirm_delete_ex_text),
+						onConfirm = {
+							confirmingDelete = false
+							onDelete()
+						},
+						onDismiss = { confirmingDelete = false }
+					)
+				}
+			}
 
 			Button(
 				onClick = {

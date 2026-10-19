@@ -11,11 +11,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -60,14 +59,14 @@ private fun MealBadge(mealType: MealType) {
 	}
 }
 
-// 单条饮食记录的卡片：点击进入编辑，右侧按钮触发删除；营养品会多显示一行营养素摘要
+// 单条饮食记录的卡片：点击进入编辑（删除收进编辑表单，2026-10-19 批次2）；
+// 营养品会多显示一行营养素摘要；尾部箭头提示可点
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DietRecordCard(
 	record: DietRecord,
 	nutrientItems: List<NutrientItem>,
-	onClick: () -> Unit,
-	onDelete: () -> Unit
+	onClick: () -> Unit
 ) {
 	val mealType = MealType.fromStorage(record.mealType)
 	Card(
@@ -117,13 +116,12 @@ fun DietRecordCard(
 					)
 				}
 			}
-			IconButton(onClick = onDelete) {
-				Icon(
-					imageVector = Icons.Outlined.Delete,
-					contentDescription = stringResource(R.string.action_delete),
-					tint = MaterialTheme.colorScheme.onSurfaceVariant
-				)
-			}
+			// 「可进入编辑」的通用视觉暗示
+			Icon(
+				imageVector = Icons.Filled.KeyboardArrowRight,
+				contentDescription = null,
+				tint = MaterialTheme.colorScheme.onSurfaceVariant
+			)
 		}
 	}
 }

@@ -8,11 +8,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -28,13 +27,12 @@ import com.dailycontrol.app.ui.components.TypeBadge
 import com.dailycontrol.app.util.TimeUtil
 import java.time.Duration
 
-// 单条运动记录的卡片：点击进入编辑，右侧按钮触发删除
+// 单条运动记录的卡片：点击进入编辑（删除收进编辑表单，2026-10-19 批次2）；尾部箭头提示可点
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ExerciseRecordCard(
 	record: ExerciseRecord,
-	onClick: () -> Unit,
-	onDelete: () -> Unit
+	onClick: () -> Unit
 ) {
 	val durationMinutes = Duration.between(
 		java.time.Instant.ofEpochMilli(record.startAt),
@@ -77,13 +75,12 @@ fun ExerciseRecordCard(
 					overflow = TextOverflow.Ellipsis
 				)
 			}
-			IconButton(onClick = onDelete) {
-				Icon(
-					imageVector = Icons.Outlined.Delete,
-					contentDescription = stringResource(R.string.action_delete),
-					tint = MaterialTheme.colorScheme.onSurfaceVariant
-				)
-			}
+			// 「可进入编辑」的通用视觉暗示
+			Icon(
+				imageVector = Icons.Filled.KeyboardArrowRight,
+				contentDescription = null,
+				tint = MaterialTheme.colorScheme.onSurfaceVariant
+			)
 		}
 	}
 }

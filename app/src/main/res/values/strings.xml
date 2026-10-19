@@ -194,6 +194,9 @@
 	<string name="action_cancel">取消</string>
 	<string name="action_delete">删除</string>
 	<string name="action_save">保存</string>
+	<string name="action_delete_record">删除本条记录</string>
+	<string name="saved_done">已保存</string>
+	<string name="deleted_done">已删除</string>
 	<string name="confirm_delete_diet_title">删除饮食记录</string>
 	<string name="confirm_delete_diet_text">确定删除这条饮食记录吗？删除后无法恢复。</string>
 

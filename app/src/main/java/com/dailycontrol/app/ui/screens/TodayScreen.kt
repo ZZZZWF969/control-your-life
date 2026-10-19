@@ -16,6 +16,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AddCircle
+import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
@@ -308,7 +309,20 @@ fun TodayScreen(
 			onDismiss = { showDietSheet = false },
 			onSave = { record, nutrientItems ->
 				showDietSheet = false
-				scope.launch { RecordSaver.saveDietRecordWithItems(db, record, nutrientItems) }
+				scope.launch {
+					RecordSaver.saveDietRecordWithItems(db, record, nutrientItems)
+					snackbarHostState.showSnackbar(context.getString(R.string.saved_done))
+				}
+			},
+			onDelete = dietSheetRecord?.let { target ->
+				{
+					showDietSheet = false
+					dietSheetRecord = null
+					scope.launch {
+						db.dietRecordDao().delete(target)
+						snackbarHostState.showSnackbar(context.getString(R.string.deleted_done))
+					}
+				}
 			}
 		)
 	}
@@ -320,7 +334,20 @@ fun TodayScreen(
 			onDismiss = { showExerciseSheet = false },
 			onSave = { record ->
 				showExerciseSheet = false
-				scope.launch { RecordSaver.saveExerciseRecord(db, record) }
+				scope.launch {
+					RecordSaver.saveExerciseRecord(db, record)
+					snackbarHostState.showSnackbar(context.getString(R.string.saved_done))
+				}
+			},
+			onDelete = exerciseSheetRecord?.let { target ->
+				{
+					showExerciseSheet = false
+					exerciseSheetRecord = null
+					scope.launch {
+						db.exerciseRecordDao().delete(target)
+						snackbarHostState.showSnackbar(context.getString(R.string.deleted_done))
+					}
+				}
 			}
 		)
 	}
@@ -415,7 +442,7 @@ private fun TodayDietRow(item: DietRecordWithItems, onClick: () -> Unit) {
 			}
 		)
 		Spacer(modifier = Modifier.size(12.dp))
-		Column {
+		Column(modifier = Modifier.weight(1f)) {
 			Text(
 				text = record.foodText,
 				style = MaterialTheme.typography.titleSmall,
@@ -428,6 +455,12 @@ private fun TodayDietRow(item: DietRecordWithItems, onClick: () -> Unit) {
 				color = MaterialTheme.colorScheme.onSurfaceVariant
 			)
 		}
+		// 「可进入编辑」的视觉暗示（与记录页卡片一致）
+		Icon(
+			imageVector = Icons.Filled.KeyboardArrowRight,
+			contentDescription = null,
+			tint = MaterialTheme.colorScheme.onSurfaceVariant
+		)
 	}
 }
 
@@ -441,7 +474,7 @@ private fun TodayExerciseRow(record: ExerciseRecord, onClick: () -> Unit) {
 	) {
 		TypeBadge(badgeChar = "动", background = Color(0xFFC7CBF8), content = Color(0xFF1B1F65))
 		Spacer(modifier = Modifier.size(12.dp))
-		Column {
+		Column(modifier = Modifier.weight(1f)) {
 			Text(
 				text = record.typeText,
 				style = MaterialTheme.typography.titleSmall,
@@ -455,5 +488,10 @@ private fun TodayExerciseRow(record: ExerciseRecord, onClick: () -> Unit) {
 				color = MaterialTheme.colorScheme.onSurfaceVariant
 			)
 		}
+		Icon(
+			imageVector = Icons.Filled.KeyboardArrowRight,
+			contentDescription = null,
+			tint = MaterialTheme.colorScheme.onSurfaceVariant
+		)
 	}
 }
