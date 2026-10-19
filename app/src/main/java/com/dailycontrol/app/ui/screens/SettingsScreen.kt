@@ -272,6 +272,16 @@ fun SettingsScreen() {
 			)
 		}
 
+		// 重新查看首启权限引导（2026-10-19 批次4）：置回未完成标志即可让向导重现
+		OutlinedButton(
+			onClick = {
+				scope.launch { settings.setOnboardingDone(false) }
+			},
+			modifier = Modifier.fillMaxWidth()
+		) {
+			Text(stringResource(R.string.settings_replay_onboarding))
+		}
+
 		// 调试工具折叠卡（2026-10-19 批次3）：默认收起，验收与排查时手动展开
 		var debugExpanded by remember { mutableStateOf(false) }
 		Column(modifier = Modifier.fillMaxWidth().animateContentSize()) {

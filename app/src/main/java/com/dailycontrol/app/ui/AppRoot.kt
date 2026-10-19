@@ -26,6 +26,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.dailycontrol.app.R
 import com.dailycontrol.app.ui.screens.AiScreen
+import com.dailycontrol.app.ui.screens.OnboardingScreen
 import com.dailycontrol.app.ui.screens.PlanScreen
 import com.dailycontrol.app.ui.screens.RecordScreen
 import com.dailycontrol.app.ui.screens.SettingsScreen
@@ -46,12 +47,20 @@ private val navDestinations = listOf(
 	NavDestination("settings", Icons.Filled.Settings, R.string.tab_settings)
 )
 
-// 应用根组件：底部导航栏 + 各页面容器；pendingRoute 用于消费通知深链的导航请求
+// 应用根组件：底部导航栏 + 各页面容器；pendingRoute 用于消费通知深链的导航请求；
+// 首启向导未完成时以向导整屏替代主界面（深链请求挂起至完成，2026-10-19 批次4）
 @Composable
 fun DailyControlAppRoot(
 	pendingRoute: String? = null,
-	onRouteConsumed: () -> Unit = {}
+	onRouteConsumed: () -> Unit = {},
+	onboardingDone: Boolean = true,
+	onOnboardingDone: () -> Unit = {}
 ) {
+	if (!onboardingDone) {
+		OnboardingScreen(onFinish = onOnboardingDone)
+		return
+	}
+
 	val navController = rememberNavController()
 	val backStackEntry by navController.currentBackStackEntryAsState()
 	val currentRoute = backStackEntry?.destination?.route

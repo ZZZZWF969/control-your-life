@@ -7,11 +7,13 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dailycontrol.app.data.settings.SettingsRepository
 import com.dailycontrol.app.data.settings.ThemeMode
 import com.dailycontrol.app.ui.DailyControlAppRoot
 import com.dailycontrol.app.ui.theme.DailyControlTheme
+import kotlinx.coroutines.launch
 
 // 唯一的主界面 Activity：所有页面都在它内部的 Compose 导航容器中切换
 // 通知点击通过 EXTRA_ROUTE 深链进来，由 AppRoot 消费后导航到对应页面
@@ -23,6 +25,7 @@ class MainActivity : ComponentActivity() {
 		super.onCreate(savedInstanceState)
 		pendingRouteState.value = intent?.getStringExtra(EXTRA_ROUTE)
 		setContent {
+			val scope = rememberCoroutineScope()
 			// 订阅用户设置的主题模式，结合系统深浅色解析出当前应使用的主题
 			val settings = SettingsRepository.get(this)
 			val themeMode by settings.themeMode.collectAsStateWithLifecycle(initialValue = ThemeMode.SYSTEM)
@@ -32,10 +35,16 @@ class MainActivity : ComponentActivity() {
 				ThemeMode.LIGHT -> false
 				ThemeMode.DARK -> true
 			}
+			// 首启向导标志：initialValue=true 防 DataStore 加载完成前闪现向导（2026-10-19 批次4）
+			val onboardingDone by settings.onboardingDone.collectAsStateWithLifecycle(initialValue = true)
 			DailyControlTheme(darkTheme = darkTheme) {
 				DailyControlAppRoot(
 					pendingRoute = pendingRouteState.value,
-					onRouteConsumed = { pendingRouteState.value = null }
+					onRouteConsumed = { pendingRouteState.value = null },
+					onboardingDone = onboardingDone,
+					onOnboardingDone = {
+						scope.launch { settings.setOnboardingDone(true) }
+					}
 				)
 			}
 		}

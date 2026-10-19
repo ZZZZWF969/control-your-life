@@ -142,6 +142,27 @@
 	<string name="theme_mode_light">浅色</string>
 	<string name="theme_mode_dark">深色</string>
 	<string name="settings_section_debug">调试工具</string>
+	<string name="settings_replay_onboarding">重新查看权限引导</string>
+
+	<!-- 首启权限引导向导（2026-10-19 批次4） -->
+	<string name="onboarding_title">首次设置</string>
+	<string name="onboarding_welcome_text">欢迎来到「每日掌控」。\n\n它会看着你好好吃饭、好好运动，饭点后提醒你记录三餐，晚上提醒你规划明天，白天循环提醒背单词——像一个不动声色的生活管家。\n\n要让它尽责，先花一分钟完成接下来的几项系统授权。</string>
+	<string name="onboarding_notify_text">应用靠通知提醒你：三餐询问、待办、背单词循环、起床震动。\n\n安卓 13 起需要手动授权「通知」权限，不授权则所有提醒静默。</string>
+	<string name="onboarding_notify_action">立即授权</string>
+	<string name="onboarding_notify_done">通知权限已开启 ✓</string>
+	<string name="onboarding_exact_text">提醒要准点（差几分钟都可能误事），需要「精确闹钟」权限。\n\n下一步会跳到系统设置页，找到本应用打开开关后返回即可。</string>
+	<string name="onboarding_exact_action">去系统页授权</string>
+	<string name="onboarding_exact_done">精确闹钟已开启 ✓</string>
+	<string name="onboarding_exact_recheck">重新检测</string>
+	<string name="onboarding_hyperos_text">HyperOS 的默认通知权限只是「能收到」，锁屏与横幅还要逐渠道手动开。\n\n路径：系统设置 → 通知与状态栏 → 通知管理 → 每日掌控，在列表最下方按渠道（三餐询问/背单词/晚间规划/待办提醒/起床闹铃）逐个开启「允许通知 + 悬浮通知 + 锁屏显示」三个开关。\n\n开完后可发条测试通知，亮屏与锁屏各看一眼。</string>
+	<string name="onboarding_hyperos_action">去应用通知设置</string>
+	<string name="onboarding_hyperos_test">发条测试通知自查</string>
+	<string name="onboarding_battery_text">最后一步（可选但强烈建议）：HyperOS 会冻结「受限」应用的定时提醒，导致到点不响。\n\n路径：系统设置 → 应用管理 → 每日掌控 → 省电策略选「无限制」，并在「自启动」页打开开关（不同机型入口略有差异）。</string>
+	<string name="onboarding_battery_action">去应用详情设置</string>
+	<string name="onboarding_prev">上一步</string>
+	<string name="onboarding_next">下一步</string>
+	<string name="onboarding_finish">完成</string>
+	<string name="onboarding_skip">跳过</string>
 	<string name="settings_send_test_notify">发送测试通知</string>
 	<string name="settings_notify_no_permission">尚未授权通知权限，点击按钮会先弹出授权请求</string>
 	<string name="settings_db_check">数据库自检</string>
