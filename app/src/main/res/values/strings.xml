@@ -141,7 +141,7 @@
 	<string name="theme_mode_system">跟随系统</string>
 	<string name="theme_mode_light">浅色</string>
 	<string name="theme_mode_dark">深色</string>
-	<string name="settings_section_diag">链路自检</string>
+	<string name="settings_section_debug">调试工具</string>
 	<string name="settings_send_test_notify">发送测试通知</string>
 	<string name="settings_notify_no_permission">尚未授权通知权限，点击按钮会先弹出授权请求</string>
 	<string name="settings_db_check">数据库自检</string>
