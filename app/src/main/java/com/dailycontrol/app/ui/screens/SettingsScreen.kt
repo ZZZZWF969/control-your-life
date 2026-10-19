@@ -6,6 +6,7 @@ import android.net.Uri
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -15,9 +16,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -32,6 +37,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -266,8 +272,39 @@ fun SettingsScreen() {
 			)
 		}
 
-		HorizontalDivider()
-		Text(text = stringResource(R.string.settings_section_diag), style = MaterialTheme.typography.titleMedium)
+		// 重新查看首启权限引导（2026-10-19 批次4）：置回未完成标志即可让向导重现
+		OutlinedButton(
+			onClick = {
+				scope.launch { settings.setOnboardingDone(false) }
+			},
+			modifier = Modifier.fillMaxWidth()
+		) {
+			Text(stringResource(R.string.settings_replay_onboarding))
+		}
+
+		// 调试工具折叠卡（2026-10-19 批次3）：默认收起，验收与排查时手动展开
+		var debugExpanded by remember { mutableStateOf(false) }
+		Column(modifier = Modifier.fillMaxWidth().animateContentSize()) {
+			Row(
+				modifier = Modifier.fillMaxWidth()
+					.clickable { debugExpanded = !debugExpanded }
+					.padding(vertical = 14.dp),
+				verticalAlignment = Alignment.CenterVertically
+			) {
+				Text(
+					text = stringResource(R.string.settings_section_debug),
+					style = MaterialTheme.typography.titleMedium,
+					modifier = Modifier.weight(1f)
+				)
+				Icon(
+					imageVector = if (debugExpanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
+					contentDescription = null,
+					tint = MaterialTheme.colorScheme.onSurfaceVariant
+				)
+			}
+			if (debugExpanded) {
+				Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+					// —— 以下为原调试区内容（保持原缩进） ——
 
 		if (!exactAlarmGranted) {
 			Text(
@@ -483,6 +520,9 @@ fun SettingsScreen() {
 		dbCheckResult?.let { result ->
 			Text(text = result, style = MaterialTheme.typography.bodyMedium)
 		}
+				}
+			}
+		}
 	}
 
 	// 应用内备份清单弹窗：列出下载目录里本应用的备份与摘要；
@@ -591,7 +631,7 @@ fun SettingsScreen() {
 	}
 }
 
-// 单行时间设置：左侧标签、右侧当前时刻按钮，点击弹时间选择器
+// 单行时间设置：整行可点弹时间选择器（2026-10-19 批次3，时间值不再是弱化的文字按钮）
 @Composable
 private fun TimeSettingRow(
 	label: String,
@@ -600,17 +640,18 @@ private fun TimeSettingRow(
 ) {
 	var showPicker by remember { mutableStateOf(false) }
 	Row(
-		modifier = Modifier.fillMaxWidth(),
+		modifier = Modifier.fillMaxWidth()
+			.clickable { showPicker = true }
+			.padding(vertical = 6.dp),
 		verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
 	) {
 		Text(text = label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
-		TextButton(onClick = { showPicker = true }) {
-			Text(
-				text = LocalTime.of(minuteOfDay / 60, minuteOfDay % 60)
-					.format(DateTimeFormatter.ofPattern("HH:mm")),
-				style = MaterialTheme.typography.titleMedium
-			)
-		}
+		Text(
+			text = LocalTime.of(minuteOfDay / 60, minuteOfDay % 60)
+				.format(DateTimeFormatter.ofPattern("HH:mm")),
+			style = MaterialTheme.typography.titleMedium,
+			color = MaterialTheme.colorScheme.primary
+		)
 	}
 	if (showPicker) {
 		TimePickerDialog(

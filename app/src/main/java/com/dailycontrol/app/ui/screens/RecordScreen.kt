@@ -20,6 +20,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -42,7 +44,6 @@ import com.dailycontrol.app.data.entity.ExerciseRecord
 import com.dailycontrol.app.data.entity.MealType
 import com.dailycontrol.app.data.entity.NutrientItem
 import com.dailycontrol.app.ui.RecordSaver
-import com.dailycontrol.app.ui.components.ConfirmDialog
 import com.dailycontrol.app.ui.components.EntryTypePickerSheet
 import com.dailycontrol.app.util.TimeUtil
 import kotlinx.coroutines.launch
@@ -74,15 +75,15 @@ fun RecordScreen(initialMeal: String? = null) {
 		)
 	}.collectAsStateWithLifecycle(initialValue = emptyList())
 
-	// 弹层状态：类型选择器 / 饮食表单（空=新建，非空=编辑，同时携带营养素明细）/ 运动表单 / 删除确认目标
+	// 弹层状态：类型选择器 / 饮食表单（空=新建，非空=编辑，同时携带营养素明细）/ 运动表单
 	var showTypePicker by remember { mutableStateOf(false) }
 	var showDietSheet by remember { mutableStateOf(false) }
 	var dietSheetRecord by remember { mutableStateOf<DietRecord?>(null) }
 	var dietSheetItems by remember { mutableStateOf<List<NutrientItem>>(emptyList()) }
 	var showExerciseSheet by remember { mutableStateOf(false) }
 	var exerciseSheetRecord by remember { mutableStateOf<ExerciseRecord?>(null) }
-	var deleteTarget by remember { mutableStateOf<DietRecord?>(null) }
-	var exDeleteTarget by remember { mutableStateOf<ExerciseRecord?>(null) }
+	// 保存/删除成功的轻提示（2026-10-19 批次2）
+	val snackbarHostState = remember { SnackbarHostState() }
 
 	// 三餐询问通知深链：进入记录页自动弹出该餐的预填表单（每次深链仅触发一次）
 	var mealLinkConsumed by remember { mutableStateOf(false) }
@@ -96,6 +97,7 @@ fun RecordScreen(initialMeal: String? = null) {
 	}
 
 	Scaffold(
+		snackbarHost = { SnackbarHost(snackbarHostState) },
 		floatingActionButton = {
 			ExtendedFloatingActionButton(
 				onClick = { showTypePicker = true },
@@ -136,8 +138,7 @@ fun RecordScreen(initialMeal: String? = null) {
 							dietSheetRecord = item.record
 							dietSheetItems = item.nutrientItems
 							showDietSheet = true
-						},
-						onDelete = { deleteTarget = item.record }
+						}
 					)
 				}
 			}
@@ -164,8 +165,7 @@ fun RecordScreen(initialMeal: String? = null) {
 						onClick = {
 							exerciseSheetRecord = record
 							showExerciseSheet = true
-						},
-						onDelete = { exDeleteTarget = record }
+						}
 					)
 				}
 			}
@@ -199,7 +199,20 @@ fun RecordScreen(initialMeal: String? = null) {
 			onSave = { record, nutrientItems ->
 				showDietSheet = false
 				// 保存逻辑在公共 RecordSaver：记录与营养素明细同事务落库
-				scope.launch { RecordSaver.saveDietRecordWithItems(db, record, nutrientItems) }
+				scope.launch {
+					RecordSaver.saveDietRecordWithItems(db, record, nutrientItems)
+					snackbarHostState.showSnackbar(context.getString(R.string.saved_done))
+				}
+			},
+			onDelete = dietSheetRecord?.let { target ->
+				{
+					showDietSheet = false
+					dietSheetRecord = null
+					scope.launch {
+						db.dietRecordDao().delete(target)
+						snackbarHostState.showSnackbar(context.getString(R.string.deleted_done))
+					}
+				}
 			}
 		)
 	}
@@ -211,32 +224,21 @@ fun RecordScreen(initialMeal: String? = null) {
 			onDismiss = { showExerciseSheet = false },
 			onSave = { record ->
 				showExerciseSheet = false
-				scope.launch { RecordSaver.saveExerciseRecord(db, record) }
+				scope.launch {
+					RecordSaver.saveExerciseRecord(db, record)
+					snackbarHostState.showSnackbar(context.getString(R.string.saved_done))
+				}
+			},
+			onDelete = exerciseSheetRecord?.let { target ->
+				{
+					showExerciseSheet = false
+					exerciseSheetRecord = null
+					scope.launch {
+						db.exerciseRecordDao().delete(target)
+						snackbarHostState.showSnackbar(context.getString(R.string.deleted_done))
+					}
+				}
 			}
-		)
-	}
-
-	deleteTarget?.let { target ->
-		ConfirmDialog(
-			title = stringResource(R.string.confirm_delete_diet_title),
-			text = stringResource(R.string.confirm_delete_diet_text),
-			onConfirm = {
-				deleteTarget = null
-				scope.launch { db.dietRecordDao().delete(target) }
-			},
-			onDismiss = { deleteTarget = null }
-		)
-	}
-
-	exDeleteTarget?.let { target ->
-		ConfirmDialog(
-			title = stringResource(R.string.confirm_delete_ex_title),
-			text = stringResource(R.string.confirm_delete_ex_text),
-			onConfirm = {
-				exDeleteTarget = null
-				scope.launch { db.exerciseRecordDao().delete(target) }
-			},
-			onDismiss = { exDeleteTarget = null }
 		)
 	}
 }

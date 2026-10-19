@@ -43,6 +43,7 @@ import com.dailycontrol.app.R
 import com.dailycontrol.app.data.entity.DietRecord
 import com.dailycontrol.app.data.entity.MealType
 import com.dailycontrol.app.data.entity.NutrientItem
+import com.dailycontrol.app.ui.components.ConfirmDialog
 import com.dailycontrol.app.ui.components.TimePickerDialog
 import com.dailycontrol.app.util.TimeUtil
 import java.time.Instant
@@ -69,6 +70,7 @@ private fun defaultMealForNow(): String {
 // 饮食录入/编辑表单（底部弹层）：initialRecord 非空即为编辑模式，date 为所属日期
 // 字段按餐别联动：三餐填饭量三档；零食/营养品填重量；营养品再追加结构化营养成分行
 // initialMealType：三餐询问通知深链进入时预选的餐别（仅新建时生效）
+// onDelete：编辑模式下的删除入口（二次确认在表单内完成，2026-10-19 批次2）
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun DietEntrySheet(
@@ -77,7 +79,8 @@ fun DietEntrySheet(
 	date: LocalDate,
 	initialMealType: MealType? = null,
 	onDismiss: () -> Unit,
-	onSave: (DietRecord, List<NutrientItem>) -> Unit
+	onSave: (DietRecord, List<NutrientItem>) -> Unit,
+	onDelete: (() -> Unit)? = null
 ) {
 	val isEditing = initialRecord != null
 	var mealType by remember {
@@ -238,6 +241,31 @@ fun DietEntrySheet(
 					text = stringResource(R.string.diet_field_time) + "  " +
 						entryTime.format(DateTimeFormatter.ofPattern("HH:mm"))
 				)
+			}
+
+			// 编辑模式才有删除；红色弱化样式 + 二次确认（删除是低频危险操作）
+			if (isEditing && onDelete != null) {
+				var confirmingDelete by remember { mutableStateOf(false) }
+				TextButton(
+					onClick = { confirmingDelete = true },
+					modifier = Modifier.fillMaxWidth()
+				) {
+					Text(
+						text = stringResource(R.string.action_delete_record),
+						color = MaterialTheme.colorScheme.error
+					)
+				}
+				if (confirmingDelete) {
+					ConfirmDialog(
+						title = stringResource(R.string.confirm_delete_diet_title),
+						text = stringResource(R.string.confirm_delete_diet_text),
+						onConfirm = {
+							confirmingDelete = false
+							onDelete()
+						},
+						onDismiss = { confirmingDelete = false }
+					)
+				}
 			}
 
 			Button(

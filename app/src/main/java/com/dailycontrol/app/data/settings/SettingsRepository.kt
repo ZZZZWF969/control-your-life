@@ -3,6 +3,7 @@ package com.dailycontrol.app.data.settings
 import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
@@ -82,6 +83,12 @@ class SettingsRepository private constructor(private val context: Context) {
 		prefs[KEY_NEXT_AUTO_BACKUP] ?: 0L
 	}
 
+	// 首启权限引导是否已完成（完成或跳过都算）：false 时应用以向导整屏替代主界面。
+	// 有意不入备份快照——换机/恢复备份后向导重现一次，新环境权限本就要重新配
+	val onboardingDone: Flow<Boolean> = context.dataStore.data.map { prefs ->
+		prefs[KEY_ONBOARDING_DONE] ?: false
+	}
+
 	suspend fun setThemeMode(mode: ThemeMode) {
 		context.dataStore.edit { prefs ->
 			prefs[KEY_THEME_MODE] = mode.storageName
@@ -134,6 +141,10 @@ class SettingsRepository private constructor(private val context: Context) {
 
 	suspend fun setNextAutoBackupAt(millis: Long) {
 		context.dataStore.edit { it[KEY_NEXT_AUTO_BACKUP] = millis }
+	}
+
+	suspend fun setOnboardingDone(done: Boolean) {
+		context.dataStore.edit { it[KEY_ONBOARDING_DONE] = done }
 	}
 
 	// ===== 备份支持：设置的全量快照与还原 =====
@@ -191,6 +202,7 @@ class SettingsRepository private constructor(private val context: Context) {
 		private val KEY_WAKE_CLOCK_CONFIRMED = stringPreferencesKey("wake_clock_confirmed")
 		private val KEY_LAST_BACKUP_AT = longPreferencesKey("last_backup_at")
 		private val KEY_NEXT_AUTO_BACKUP = longPreferencesKey("next_auto_backup")
+		private val KEY_ONBOARDING_DONE = booleanPreferencesKey("onboarding_done")
 
 		@Volatile
 		private var instance: SettingsRepository? = null
