@@ -38,6 +38,11 @@ interface DietRecordDao {
 	@Query("SELECT * FROM diet_record WHERE eatenAt BETWEEN :startMillis AND :endMillis ORDER BY eatenAt ASC")
 	fun observeBetween(startMillis: Long, endMillis: Long): Flow<List<DietRecordWithItems>>
 
+	// AI 汇总支持：时间区间内的一次性读取（带营养素明细），供提示词组装，无需响应式刷新
+	@Transaction
+	@Query("SELECT * FROM diet_record WHERE eatenAt BETWEEN :startMillis AND :endMillis ORDER BY eatenAt ASC")
+	suspend fun getBetweenOnce(startMillis: Long, endMillis: Long): List<DietRecordWithItems>
+
 	// ===== 备份支持：全表一次性读取与清空（清空必须先于子表 nutrient_item，见外键） =====
 
 	@Query("SELECT * FROM diet_record")

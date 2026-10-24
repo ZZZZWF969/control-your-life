@@ -16,6 +16,60 @@
 	<string name="vocab_package_label">背单词应用包名</string>
 	<string name="vocab_package_hint">留空表示未配置；真机联调时会自动读取并填入</string>
 
+	<!-- AI 接口（0.4.0 第四阶段） -->
+	<string name="settings_section_ai">AI 接口</string>
+	<string name="ai_url_label">接口地址</string>
+	<string name="ai_url_hint">OpenAI 兼容服务的地址，一般以 /v1 结尾，如 https://api.deepseek.com/v1</string>
+	<string name="ai_key_label">API Key</string>
+	<string name="ai_model_label">模型名</string>
+	<string name="ai_model_hint">该服务商提供的模型标识，如 deepseek-chat</string>
+	<string name="ai_test_connection">测试连接</string>
+	<string name="ai_test_running">测试中…</string>
+	<string name="ai_test_ok">连接成功，配置可用 ✓</string>
+	<string name="ai_test_fail">连接失败：%1$s</string>
+	<string name="ai_key_visibility_show">显示</string>
+	<string name="ai_key_visibility_hide">隐藏</string>
+	<string name="ai_security_note">Key 仅保存在本机（卸载应用即清除），不随备份导出，也只发送到你在上面填写的这一个地址。</string>
+
+	<!-- AI 页（0.4.0 第四阶段） -->
+	<string name="ai_unconfigured_title">AI 生活建议还没配置</string>
+	<string name="ai_unconfigured_hint">到 设置 → AI 接口 填写接口地址、API Key 与模型名。配置完成后，每天凌晨 4:00 自动汇总前一天的饮食与运动，生成营养建议报告，早晨即可查看。</string>
+	<string name="ai_go_settings">去设置</string>
+	<string name="ai_status_last_report">上次报告：%1$s</string>
+	<string name="ai_status_never">还没有生成过报告</string>
+	<string name="ai_status_next">每日 04:00 自动汇总前一天数据；中断（欠费/断网）后恢复会自动补交</string>
+	<string name="ai_generate_now">立即生成昨日报告</string>
+	<string name="ai_generating">生成中…大模型分析需要几十秒</string>
+	<string name="ai_generate_done">已生成 %1$s 的报告</string>
+	<string name="ai_generate_done_raw">已生成 %1$s 的报告（返回格式异常，已按原文保存）</string>
+	<string name="ai_generate_uptodate">昨天的报告已生成过了</string>
+	<string name="ai_generate_fail">生成失败：%1$s</string>
+	<string name="ai_report_list_title">报告（滚动保留 14 天）</string>
+	<string name="ai_report_empty">还没有报告：点上方「立即生成」试一次，或等每天凌晨 4:00 的自动生成</string>
+	<string name="ai_report_badge_first">首份</string>
+	<string name="ai_report_badge_backfill">回顾</string>
+	<string name="ai_report_parse_bad">格式异常</string>
+	<string name="ai_report_summary_fallback">本次返回未按约定格式，已保存原文，点击查看</string>
+	<string name="ai_detail_back">返回列表</string>
+	<string name="ai_section_summary">总评</string>
+	<string name="ai_section_diet">饮食分析</string>
+	<string name="ai_section_exercise">运动分析</string>
+	<string name="ai_section_suggestions">建议</string>
+	<string name="ai_raw_response">原始返回（AI 回复原文）</string>
+	<string name="ai_sent_payload">本次发送的数据（隐私自查）</string>
+	<string name="ai_raw_parse_bad_hint">本次 AI 返回未按约定 JSON 格式，无法拆解成板块，以下为原文（数据未丢失；可返回列表重新生成）：</string>
+	<string name="ai_debug_rewind_watermark">AI调试：水位线回拨3天</string>
+	<string name="ai_debug_rewind_watermark_done">已回拨，下次生成将走「补交回顾」模式</string>
+	<string name="ai_debug_seed_old_report">AI调试：灌一条20天前旧报告</string>
+	<string name="ai_debug_seed_old_report_done">已插入，下次生成时应被14天滚动清理删除</string>
+	<string name="channel_ai_name">AI 报告</string>
+	<string name="ai_notify_title">今日 AI 报告已生成</string>
+	<string name="ai_notify_text">%1$s</string>
+	<string name="ai_notify_fail_title">AI 报告生成失败</string>
+	<string name="ai_notify_fail_text">%1$s；恢复后自动补交，无需手动处理</string>
+	<string name="ai_debug_alarm_1min">AI调试：报告闹钟调到1分钟后</string>
+	<string name="ai_debug_alarm_1min_done">已排程，1 分钟后走真实 4:00 接收器分支</string>
+
 	<!-- 备份与恢复（2026-10-18 数据存储策略批次） -->
 	<string name="settings_section_backup">备份与恢复</string>
 	<string name="settings_backup_now">导出全部数据</string>

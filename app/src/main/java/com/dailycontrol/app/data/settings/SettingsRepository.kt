@@ -89,6 +89,37 @@ class SettingsRepository private constructor(private val context: Context) {
 		prefs[KEY_ONBOARDING_DONE] ?: false
 	}
 
+	// ===== AI 接口与报告状态（0.4.0 第四阶段）=====
+	// 三要素：地址 / Key / 模型名，三者都非空视为 AI 功能已启用。
+	// Key 红线：只存本机私有目录（卸载应用即清除）、不随备份导出、只发往用户所填的这一个地址
+
+	val aiBaseUrl: Flow<String> = context.dataStore.data.map { prefs ->
+		prefs[KEY_AI_BASE_URL] ?: ""
+	}
+
+	val aiApiKey: Flow<String> = context.dataStore.data.map { prefs ->
+		prefs[KEY_AI_API_KEY] ?: ""
+	}
+
+	val aiModel: Flow<String> = context.dataStore.data.map { prefs ->
+		prefs[KEY_AI_MODEL] ?: ""
+	}
+
+	// 报告水位线：最后一份「成功」报告覆盖的日期（epochDay）；0 = 从未生成过。
+	// 由它判定生成模式：无值=首次（附近30天明细）、等于昨天=日常、更早=中断补交
+	val aiLastReportEpochDay: Flow<Long> = context.dataStore.data.map { prefs ->
+		prefs[KEY_AI_LAST_REPORT_EPOCH_DAY] ?: 0L
+	}
+
+	// 最近一次尝试的失败原因与时刻（AI 页状态卡展示；成功时错误文本清空）
+	val aiLastErrorText: Flow<String> = context.dataStore.data.map { prefs ->
+		prefs[KEY_AI_LAST_ERROR_TEXT] ?: ""
+	}
+
+	val aiLastAttemptAt: Flow<Long> = context.dataStore.data.map { prefs ->
+		prefs[KEY_AI_LAST_ATTEMPT_AT] ?: 0L
+	}
+
 	suspend fun setThemeMode(mode: ThemeMode) {
 		context.dataStore.edit { prefs ->
 			prefs[KEY_THEME_MODE] = mode.storageName
@@ -147,6 +178,30 @@ class SettingsRepository private constructor(private val context: Context) {
 		context.dataStore.edit { it[KEY_ONBOARDING_DONE] = done }
 	}
 
+	suspend fun setAiBaseUrl(url: String) {
+		context.dataStore.edit { it[KEY_AI_BASE_URL] = url }
+	}
+
+	suspend fun setAiApiKey(key: String) {
+		context.dataStore.edit { it[KEY_AI_API_KEY] = key }
+	}
+
+	suspend fun setAiModel(model: String) {
+		context.dataStore.edit { it[KEY_AI_MODEL] = model }
+	}
+
+	suspend fun setAiLastReportEpochDay(epochDay: Long) {
+		context.dataStore.edit { it[KEY_AI_LAST_REPORT_EPOCH_DAY] = epochDay }
+	}
+
+	suspend fun setAiLastErrorText(text: String) {
+		context.dataStore.edit { it[KEY_AI_LAST_ERROR_TEXT] = text }
+	}
+
+	suspend fun setAiLastAttemptAt(millis: Long) {
+		context.dataStore.edit { it[KEY_AI_LAST_ATTEMPT_AT] = millis }
+	}
+
 	// ===== 备份支持：设置的全量快照与还原 =====
 	// 键名与 DataStore 键一一对应（字符串化），备份文件里人类可读；
 	// last_backup_at 属于运行痕迹，不入备份
@@ -203,6 +258,14 @@ class SettingsRepository private constructor(private val context: Context) {
 		private val KEY_LAST_BACKUP_AT = longPreferencesKey("last_backup_at")
 		private val KEY_NEXT_AUTO_BACKUP = longPreferencesKey("next_auto_backup")
 		private val KEY_ONBOARDING_DONE = booleanPreferencesKey("onboarding_done")
+		// AI 接口（0.4.0）：全部刻意不入 backupSettings/restoreSettings——
+		// Key 属敏感信息不随备份导出（安全红线）；水位线与错误文本属运行痕迹，恢复后按新环境重建
+		private val KEY_AI_BASE_URL = stringPreferencesKey("ai_base_url")
+		private val KEY_AI_API_KEY = stringPreferencesKey("ai_api_key")
+		private val KEY_AI_MODEL = stringPreferencesKey("ai_model")
+		private val KEY_AI_LAST_REPORT_EPOCH_DAY = longPreferencesKey("ai_last_report_epoch_day")
+		private val KEY_AI_LAST_ERROR_TEXT = stringPreferencesKey("ai_last_error_text")
+		private val KEY_AI_LAST_ATTEMPT_AT = longPreferencesKey("ai_last_attempt_at")
 
 		@Volatile
 		private var instance: SettingsRepository? = null

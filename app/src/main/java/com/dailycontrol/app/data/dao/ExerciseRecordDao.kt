@@ -28,6 +28,10 @@ interface ExerciseRecordDao {
 	@Query("SELECT * FROM exercise_record WHERE startAt BETWEEN :startMillis AND :endMillis ORDER BY startAt ASC")
 	fun observeBetween(startMillis: Long, endMillis: Long): Flow<List<ExerciseRecord>>
 
+	// AI 汇总支持：时间区间内的一次性读取，供提示词组装
+	@Query("SELECT * FROM exercise_record WHERE startAt BETWEEN :startMillis AND :endMillis ORDER BY startAt ASC")
+	suspend fun getBetweenOnce(startMillis: Long, endMillis: Long): List<ExerciseRecord>
+
 	// ===== 备份支持 =====
 
 	@Query("SELECT * FROM exercise_record")

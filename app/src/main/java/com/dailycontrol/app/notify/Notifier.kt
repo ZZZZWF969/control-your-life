@@ -11,6 +11,7 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import com.dailycontrol.app.MainActivity
 import com.dailycontrol.app.R
+import com.dailycontrol.app.ai.AiReportGenerator
 import com.dailycontrol.app.data.entity.MealType
 import com.dailycontrol.app.data.entity.TodoTask
 import com.dailycontrol.app.data.settings.SettingsRepository
@@ -33,6 +34,8 @@ object Notifier {
 	const val NOTIFY_ID_TODO_BASE = 9300
 	// 起床唤醒：每声覆盖前一声（只留最新未读）
 	const val NOTIFY_ID_WAKE = 9400
+	// AI 报告通知（成功与失败共用一条，互相覆盖）
+	const val NOTIFY_ID_AI = 9500
 
 	// 检查是否已获得安卓 13+ 的通知运行时权限
 	fun hasPostPermission(context: Context): Boolean {
@@ -214,6 +217,36 @@ object Notifier {
 			notification.flags = notification.flags or Notification.FLAG_INSISTENT
 		}
 		NotificationManagerCompat.from(context).notify(NOTIFY_ID_WAKE, notification)
+	}
+
+	// AI 报告通知：成功带总评（格式异常时说明已按原文保存）、失败带原因；点击深链到 AI 页。
+	// 凌晨 4:00 发出，渠道为 DEFAULT 无声级，不会响铃；「一切正常/未配置」不通知
+	fun sendAiReportNotification(context: Context, outcome: AiReportGenerator.Outcome) {
+		if (!hasPostPermission(context)) {
+			return
+		}
+		val (titleRes, text) = when (outcome) {
+			is AiReportGenerator.Outcome.Success -> {
+				val summary = if (outcome.summary.isNotBlank()) {
+					outcome.summary
+				} else {
+					context.getString(R.string.ai_report_summary_fallback)
+				}
+				R.string.ai_notify_title to context.getString(R.string.ai_notify_text, summary)
+			}
+			is AiReportGenerator.Outcome.Failed ->
+				R.string.ai_notify_fail_title to context.getString(R.string.ai_notify_fail_text, outcome.reasonText)
+			else -> return
+		}
+		val notification = NotificationCompat.Builder(context, NotifyChannels.AI_ID)
+			.setSmallIcon(R.drawable.ic_stat_dailycontrol)
+			.setContentTitle(context.getString(titleRes))
+			.setContentText(text)
+			.setContentIntent(buildTapIntent(context, MainActivity.ROUTE_AI, NOTIFY_ID_AI))
+			.setAutoCancel(true)
+			.setStyle(NotificationCompat.BigTextStyle().bigText(text))
+			.build()
+		NotificationManagerCompat.from(context).notify(NOTIFY_ID_AI, notification)
 	}
 
 	// 通知点击意图：带导航路由参数，由 MainActivity 解析后转发给应用内导航
