@@ -47,6 +47,14 @@ Room 的 `@Relation` 用法：一次查询同时拿到「记录 + 它的全部�
 - `startAtMillis` 可空：null 表示「只记录不提醒」——待办分两种语义
 - `remindAheadMinutes`：提醒提前量，**提醒时刻 = startAtMillis − 提前分钟数**，这个换算在调度层用
 
+### AiReport.kt（`ai_report` 表，0.4.0）
+
+一行 = 一次成功生成的 AI 报告（归属日唯一索引，同日重生成整行 REPLACE）：
+
+- `reportDateEpochDay` + `kind`（first/daily/backfill）+ `generatedAt`：归属、模式、时刻
+- 结构化字段（summary / dietAnalysis / exerciseAnalysis / suggestionsJson / questionsJson）供 AI 页拆板块渲染；`questionsJson` 恒为空数组——**0.4.1 追问机制的预留位**
+- `parseOk` + `rawResponse` + `sentPayload`：格式异常降级开关、AI 原文（排查兜底）、本次发送数据全文（隐私自查入口的数据来源）——原文永远留档，数据永不丢
+
 ### MealType.kt（枚举，非表）
 
 五个餐别。每个枚举值带两个属性：`storageName`（数据库里的存储值）和 `labelRes`（界面文案资源 id）——**存储与展示解耦**，加一种餐别只需加一行枚举加一条字符串。`fromStorage()` 做还原，认不出来时降级为零食（健壮性：坏数据不崩溃）。
@@ -62,6 +70,7 @@ DAO（Data Access Object）只声明方法签名 + SQL 注解，实现由 Room �
 - 常规 insert/update/delete/count
 - `countBetween(mealType, start, end)`：数某天某餐别有几条记录——**三餐询问闹钟到点时靠它判断「这餐记了没」**，记了就静默
 - `observeBetween(start, end)`：带 `@Transaction` 的组合查询（记录 + 营养素明细），`@Transaction` 保证主表与子表数据一致地读到
+- `getBetweenOnce(start, end)`（0.4.0）：同区间的一次性读取（挂起返回单值），AI 汇总组装提示词用——不需要响应式刷新
 
 ### NutrientItemDao.kt
 
@@ -69,7 +78,14 @@ DAO（Data Access Object）只声明方法签名 + SQL 注解，实现由 Room �
 
 ### ExerciseRecordDao.kt
 
-结构与饮食 DAO 同构，只是少了明细子表。
+结构与饮食 DAO 同构，只是少了明细子表。0.4.0 同样新增 `getBetweenOnce` 供 AI 汇总用。
+
+### AiReportDao.kt（0.4.0）
+
+- `insert` 用 **REPLACE 冲突策略**：同归属日重生成 = 整行替换，靠唯一索引兜底
+- `observeRecent(fromEpochDay)`：只取保留窗内的报告（新→旧），AI 页列表订阅
+- `recentParsed(count)`：最近几份「解析成功」的报告——提示词的「近几天已给建议勿重复」段落数据源
+- `deleteOlderThan(beforeEpochDay)`：14 天滚动清理，每次成功生成后调用
 
 ### TodoTaskDao.kt
 
@@ -82,8 +98,8 @@ DAO（Data Access Object）只声明方法签名 + SQL 注解，实现由 Room �
 
 ## db/DailyControlDatabase.kt —— 单例与迁移
 
-- `@Database(... version = 4, exportSchema = true)`：版本号每次改表结构必须 +1，同时**必须**补一段 `Migration`，否则老用户升级直接崩（Room 校验版本差没有迁移路径就抛异常）。`exportSchema = true` 会把每版表结构快照存进 `app/schemas/`，升级时可 diff 对比
-- 三段迁移（1→2 加列、2→3 建子表、3→4 建待办表）都直接写 SQL——迁移 SQL 必须与 Room 期望的表结构**严格一致**（含外键、索引、NOT NULL），否则运行时校验失败
+- `@Database(... version = 5, exportSchema = true)`：版本号每次改表结构必须 +1，同时**必须**补一段 `Migration`，否则老用户升级直接崩（Room 校验版本差没有迁移路径就抛异常）。`exportSchema = true` 会把每版表结构快照存进 `app/schemas/`，升级时可 diff 对比
+- 四段迁移（1→2 加列、2→3 建子表、3→4 建待办表、4→5 建 ai_report 报告表）都直接写 SQL——迁移 SQL 必须与 Room 期望的表结构**严格一致**（含外键、索引、NOT NULL），否则运行时校验失败
 - `get(context)` 是双重检查锁定单例：全应用共享一个数据库连接。`@Volatile` 保证多线程读到的是已构造完成的对象
 
 ## settings/ —— DataStore 设置仓库
@@ -106,3 +122,5 @@ DAO（Data Access Object）只声明方法签名 + SQL 注解，实现由 Room �
 	- `lastPlannedDate`：最近一次保存规划的日期，22:00/23:00 提醒据此判断当晚是否已规划
 	- `wakePlanDate` + `wakePlanTimes`：起床唤醒计划存档（目标日期 + 各声时刻），**开机自愈的依据**；空日期表示无计划
 	- `wakeClockConfirmedDate`：用户自记「时钟闹钟已开」的日期（应用读不到系统时钟，见 schedule 层的 WakePlanner）
+	- AI 六键（0.4.0）：三要素 `aiBaseUrl` / `aiApiKey` / `aiModel`（都非空 = 功能启用），水位线 `aiLastReportEpochDay`（0 = 从未生成；**成功才推进**，详见 ai-layer.md），运行痕迹 `aiLastErrorText` / `aiLastAttemptAt`
+	- **AI 六键全部刻意不入 backupSettings/restoreSettings**：Key 属敏感信息不随备份导出（安全红线）；水位线与错误属运行痕迹，恢复后按新环境重建

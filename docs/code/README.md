@@ -9,5 +9,6 @@
 | [data-layer.md](data-layer.md) | 数据层 `data/`：表结构实体、DAO 接口、数据库单例与迁移、DataStore 设置仓库 |
 | [schedule-layer.md](schedule-layer.md) | 调度层 `schedule/`：requestCode 体系、闹钟封装、到点分发、各排程器、开机自愈 |
 | [notify-layer.md](notify-layer.md) | 通知层 `notify/`：渠道定义与全部通知的发送逻辑 |
+| [ai-layer.md](ai-layer.md) | AI 协调层 `ai/`（0.4.0）：OpenAI 兼容客户端、概要/提示词/解析、报告生成编排 |
 | [ui-layer.md](ui-layer.md) | 界面层 `ui/`：导航容器、六个页面、四个公共组件、主题系统 |
 | [util-and-entry.md](util-and-entry.md) | 工具层 `util/`、应用入口与备份协调层 `backup/`：时间工具、时钟跳转、自愈启动、BackupManager |
