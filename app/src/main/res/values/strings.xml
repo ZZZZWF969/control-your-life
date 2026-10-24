@@ -55,6 +55,9 @@
 	<string name="ai_section_diet">饮食分析</string>
 	<string name="ai_section_exercise">运动分析</string>
 	<string name="ai_section_suggestions">建议</string>
+	<string name="ai_suggestion_basis_label">依据：%1$s</string>
+	<string name="ai_suggestion_expand">展开详情</string>
+	<string name="ai_suggestion_collapse">收起</string>
 	<string name="ai_raw_response">原始返回（AI 回复原文）</string>
 	<string name="ai_sent_payload">本次发送的数据（隐私自查）</string>
 	<string name="ai_raw_parse_bad_hint">本次 AI 返回未按约定 JSON 格式，无法拆解成板块，以下为原文（数据未丢失；可返回列表重新生成）：</string>

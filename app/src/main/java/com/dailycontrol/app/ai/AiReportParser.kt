@@ -52,7 +52,8 @@ object AiReportParser {
 		return text.substring(start, end + 1)
 	}
 
-	// 逐条宽容读取建议列表：缺正文的条目跳过，单条脏数据不拖垮整份报告
+	// 逐条宽容读取建议列表：缺 headline/detail 的条目回退旧 content 字段（兼容旧报告），
+	// 没有任何正文的条目跳过，单条脏数据不拖垮整份报告
 	private fun normalizeSuggestions(array: JSONArray?): JSONArray {
 		val result = JSONArray()
 		if (array == null) {
@@ -60,15 +61,18 @@ object AiReportParser {
 		}
 		for (i in 0 until array.length()) {
 			val item = array.optJSONObject(i) ?: continue
-			val content = item.optString("content", "")
-			if (content.isBlank()) {
+			val legacyContent = item.optString("content", "")
+			val headline = item.optString("headline", "").ifBlank { legacyContent }
+			if (headline.isBlank()) {
 				continue
 			}
 			result.put(
 				JSONObject()
 					.put("topic", item.optString("topic", ""))
-					.put("content", content)
+					.put("headline", headline)
+					.put("detail", item.optString("detail", ""))
 					.put("level", item.optString("level", "普通"))
+					.put("basis", item.optString("basis", ""))
 			)
 		}
 		return result

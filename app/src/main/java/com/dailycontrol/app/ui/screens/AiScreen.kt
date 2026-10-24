@@ -16,6 +16,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -281,8 +282,15 @@ private fun BadgeText(text: String) {
 	)
 }
 
-// 建议条目：主题词 + 级别 + 正文
-private data class SuggestionItem(val topic: String, val content: String, val level: String)
+// 建议条目：主题词 + 级别 + 行动摘要（headline，常显）+ 展开说明（detail）+ 依据（basis）。
+// headline 为本批新增字段，旧报告缺失时由解析层回退为旧 content 正文
+private data class SuggestionItem(
+	val topic: String,
+	val headline: String,
+	val detail: String,
+	val level: String,
+	val basis: String
+)
 
 @Composable
 private fun AiReportDetail(report: AiReport, onBack: () -> Unit) {
@@ -319,44 +327,39 @@ private fun AiReportDetail(report: AiReport, onBack: () -> Unit) {
 				}
 			}
 		} else {
-			SectionCard(title = stringResource(R.string.ai_section_summary), body = report.summary)
+			// 总评大字卡：整页的视觉锚点，第一眼重点
+			if (report.summary.isNotBlank()) {
+				Card(
+					modifier = Modifier.fillMaxWidth(),
+					colors = CardDefaults.cardColors(
+						containerColor = MaterialTheme.colorScheme.primaryContainer,
+						contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+					)
+				) {
+					Text(
+						text = report.summary,
+						style = MaterialTheme.typography.titleLarge,
+						modifier = Modifier.fillMaxWidth().padding(20.dp)
+					)
+				}
+			}
+			// 建议区：行动输出是用户最关心的，排在板块分析之前；主色标题强调
+			if (suggestions.isNotEmpty()) {
+				Text(
+					text = stringResource(R.string.ai_section_suggestions),
+					style = MaterialTheme.typography.titleMedium,
+					color = MaterialTheme.colorScheme.primary
+				)
+				suggestions.forEach { suggestion ->
+					SuggestionCard(suggestion = suggestion)
+				}
+			}
+			// 板块分析：视觉弱化退居二线（标题用次要色）
 			if (report.dietAnalysis.isNotBlank()) {
 				SectionCard(title = stringResource(R.string.ai_section_diet), body = report.dietAnalysis)
 			}
 			if (report.exerciseAnalysis.isNotBlank()) {
 				SectionCard(title = stringResource(R.string.ai_section_exercise), body = report.exerciseAnalysis)
-			}
-			if (suggestions.isNotEmpty()) {
-				Text(
-					text = stringResource(R.string.ai_section_suggestions),
-					style = MaterialTheme.typography.titleMedium
-				)
-				suggestions.forEach { suggestion ->
-					Card(modifier = Modifier.fillMaxWidth()) {
-						Column(
-							modifier = Modifier.fillMaxWidth().padding(16.dp),
-							verticalArrangement = Arrangement.spacedBy(4.dp)
-						) {
-							Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-								Text(
-									text = suggestion.topic,
-									style = MaterialTheme.typography.titleSmall,
-									color = MaterialTheme.colorScheme.primary
-								)
-								Text(
-									text = suggestion.level,
-									style = MaterialTheme.typography.labelSmall,
-									color = if (suggestion.level == "提醒") {
-										MaterialTheme.colorScheme.error
-									} else {
-										MaterialTheme.colorScheme.onSurfaceVariant
-									}
-								)
-							}
-							Text(text = suggestion.content, style = MaterialTheme.typography.bodyMedium)
-						}
-					}
-				}
 			}
 		}
 
@@ -373,7 +376,89 @@ private fun AiReportDetail(report: AiReport, onBack: () -> Unit) {
 	}
 }
 
-// 板块卡：标题（主题色小标题）+ 正文
+// 建议卡：按等级做视觉分流——「提醒」级整卡警示色容器（扫一眼先看到），
+// 「普通」级低饱和底色弱化。常显只有一行行动摘要（headline），「先做什么」；
+// 展开说明与依据默认折叠（「再为什么」），点「展开详情」按需查看——列表保持一屏可扫。
+// 旧报告（headline 由旧 content 回退而来、无 detail）自动退化为单行显示，不报错
+@Composable
+private fun SuggestionCard(suggestion: SuggestionItem) {
+	val isAlert = suggestion.level == "提醒"
+	var expanded by remember { mutableStateOf(false) }
+	val hasDetail = suggestion.detail.isNotBlank() || suggestion.basis.isNotBlank()
+	Card(
+		modifier = Modifier.fillMaxWidth(),
+		colors = CardDefaults.cardColors(
+			containerColor = if (isAlert) {
+				MaterialTheme.colorScheme.errorContainer
+			} else {
+				MaterialTheme.colorScheme.surfaceVariant
+			},
+			contentColor = if (isAlert) {
+				MaterialTheme.colorScheme.onErrorContainer
+			} else {
+				MaterialTheme.colorScheme.onSurfaceVariant
+			}
+		)
+	) {
+		Column(
+			modifier = Modifier.fillMaxWidth().animateContentSize().padding(16.dp),
+			verticalArrangement = Arrangement.spacedBy(4.dp)
+		) {
+			Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+				Text(
+					text = suggestion.topic,
+					style = MaterialTheme.typography.titleSmall,
+					color = if (isAlert) {
+						MaterialTheme.colorScheme.error
+					} else {
+						MaterialTheme.colorScheme.primary
+					}
+				)
+				Text(
+					text = suggestion.level,
+					style = MaterialTheme.typography.labelSmall
+				)
+			}
+			Text(text = suggestion.headline, style = MaterialTheme.typography.bodyLarge)
+			if (hasDetail) {
+				Row(
+					modifier = Modifier.fillMaxWidth()
+						.clickable { expanded = !expanded }
+						.padding(top = 2.dp),
+					horizontalArrangement = Arrangement.spacedBy(4.dp),
+					verticalAlignment = Alignment.CenterVertically
+				) {
+					Text(
+						text = stringResource(if (expanded) R.string.ai_suggestion_collapse else R.string.ai_suggestion_expand),
+						style = MaterialTheme.typography.labelSmall
+					)
+					Icon(
+						imageVector = if (expanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
+						contentDescription = null,
+						modifier = Modifier.size(16.dp)
+					)
+				}
+				if (expanded) {
+					if (suggestion.detail.isNotBlank()) {
+						Text(
+							text = suggestion.detail,
+							style = MaterialTheme.typography.bodySmall
+						)
+					}
+					if (suggestion.basis.isNotBlank()) {
+						Text(
+							text = stringResource(R.string.ai_suggestion_basis_label, suggestion.basis),
+							style = MaterialTheme.typography.bodySmall,
+							color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.9f)
+						)
+					}
+				}
+			}
+		}
+	}
+}
+
+// 板块卡：标题（次要色小标题——分析内容相对建议属二线信息）+ 正文
 @Composable
 private fun SectionCard(title: String, body: String) {
 	if (body.isBlank()) {
@@ -384,7 +469,11 @@ private fun SectionCard(title: String, body: String) {
 			modifier = Modifier.fillMaxWidth().padding(20.dp),
 			verticalArrangement = Arrangement.spacedBy(8.dp)
 		) {
-			Text(text = title, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
+			Text(
+				text = title,
+				style = MaterialTheme.typography.titleSmall,
+				color = MaterialTheme.colorScheme.onSurfaceVariant
+			)
 			Text(text = body, style = MaterialTheme.typography.bodyMedium)
 		}
 	}
@@ -424,18 +513,22 @@ private fun ExpandableTextCard(title: String, body: String) {
 	}
 }
 
-// 建议列表解析：坏字段跳过，不拖垮整页
+// 建议列表解析：坏字段跳过，不拖垮整页；headline/detail 为新字段，
+// 旧数据只有 content 时回退为 headline（detail 为空 → 界面退化为单行显示）
 private fun parseSuggestions(suggestionsJson: String): List<SuggestionItem> {
 	return try {
 		val array = JSONArray(suggestionsJson)
 		List(array.length()) { index ->
 			val item = array.optJSONObject(index)
+			val legacyContent = item?.optString("content", "") ?: ""
 			SuggestionItem(
 				topic = item?.optString("topic", "") ?: "",
-				content = item?.optString("content", "") ?: "",
-				level = item?.optString("level", "普通") ?: "普通"
+				headline = (item?.optString("headline", "") ?: "").ifBlank { legacyContent },
+				detail = item?.optString("detail", "") ?: "",
+				level = item?.optString("level", "普通") ?: "普通",
+				basis = item?.optString("basis", "") ?: ""
 			)
-		}.filter { it.content.isNotBlank() }
+		}.filter { it.headline.isNotBlank() }
 	} catch (e: Exception) {
 		emptyList()
 	}

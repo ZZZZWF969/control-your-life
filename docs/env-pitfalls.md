@@ -134,3 +134,9 @@
 - **原因**：Android 应用的所有 socket 都是 v4-mapped IPv6；这台模拟器的 QEMU 用户态网络对「映射 v6 套接字 → 10.0.2.2 宿主别名」不做 NAT（对普通公网地址正常），SYN 出去就石沉大海。
 - **规避**：改用 **adb 端口反向转发**——`adb reverse tcp:18080 tcp:18080`，应用内地址填 `http://127.0.0.1:18080/v1`（经 adb 隧道直达宿主机，稳定可靠）；`network_security_config.xml` 的明文放行清单需同时含 `10.0.2.2` 与 `127.0.0.1`。另：跑本地 mock 服务用 `python -u` 无缓冲启动，否则日志文件迟迟不落盘，会误判「请求没到」。
 
+## 24. HyperOS 真机：普通 USB 调试禁止 adb 注入输入（2026-10-24 真机验收实测）
+
+- **症状**：真机（HyperOS 2 / Android 15）已授权 USB 调试，`adb shell input tap/swipe/keyevent` 全部抛 `SecurityException: Injecting input events requires ... INJECT_EVENTS`；锁屏状态下同样被拒。读操作（screencap / uiautomator dump / install / logcat）不受影响。
+- **原因**：MIUI/HyperOS 把输入注入划入「USB 调试（安全设置）」的额外授权，需登录小米账号并在开发者选项单独开启；普通 USB 调试只放行只读与安装类操作。
+- **规避**：真机验收/走查不必去开「安全设置」——改用**分工模式**：用户手动操作手机，adb 只做只读核验（截图 + uiautomator dump 断言界面文本 + logcat 验证接收器触发）。需要全自动 UI 驱动的场景留给无界面模拟器（不受此限制）。
+
