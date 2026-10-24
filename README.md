@@ -55,7 +55,7 @@
 | 命令行 Gradle 构建 + adb 安装 | 熟悉终端的开发者 |
 | 直接安装 APK | 只想用的普通用户（正式版将挂 GitHub Releases） |
 
-> 每种方式的逐步操作、每一步的预期输出、可预见的非预期行为与解决办法，见 **[docs/build-and-install.md](docs/build-and-install.md)**；装好后怎么开始用，看[新手上手指南](docs/getting-started.md)。不确定环境齐不齐？双击仓库里的 `script/check-env.bat` 一键自检。设备要求：Android 15 及以上。
+> 每种方式的逐步操作、每一步的预期输出、可预见的非预期行为与解决办法，见 **[docs/build-and-install.md](docs/build-and-install.md)**；装好后怎么开始用，看[新手上手指南](docs/getting-started.md)。想省事：双击仓库里的 `script/check-env.bat` 一键自检环境，双击 `script/build-app.bat` 一键构建出 APK。设备要求：Android 15 及以上。
 
 ## 技术栈与工程
 

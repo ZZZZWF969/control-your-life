@@ -16,7 +16,7 @@
 | 文档 | 内容 | 什么时候看 |
 |---|---|---|
 | [getting-started.md](getting-started.md) | 新手上手指南：权限向导、记第一笔、提醒体系、规划与起床、AI 报告、备份 | 第一次安装使用 |
-| [build-and-install.md](build-and-install.md) | 构建与安装详解：三种方式的逐步操作、预期输出与非预期排查；随仓库附带 `script/check-env` 环境自检脚本 | 构建/安装遇到问题时；构建前想先体检环境时 |
+| [build-and-install.md](build-and-install.md) | 构建与安装详解：三种方式的逐步操作、预期输出与非预期排查；随仓库附带 `script/check-env` 自检与 `script/build-app` 一键构建脚本 | 构建/安装遇到问题时；构建前想先体检环境时 |
 | [release-notes/](release-notes/) | 各中版本（0.4、0.5 …）的版本记录：用户可见变化 + 开发记录 | 想了解某版本改了什么 |
 | [roadmap.md](roadmap.md) | 待办与远景规划：下一步 / 待办池 / 远景 | 想知道接下来会做什么 |
 
