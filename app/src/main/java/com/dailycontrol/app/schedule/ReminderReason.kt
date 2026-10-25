@@ -36,4 +36,9 @@ object ReminderReason {
 
 	// 每周自动备份：到点把全部数据经 MediaStore 写入系统下载目录
 	const val BACKUP_WEEKLY = 6001
+
+	// AI 每日报告：凌晨 4:00 汇总前一日数据请求 AI。
+	// 码段必须避开待办吞没区间（4100+99999 上界以内），且整体低于起床段 200000——
+	// 110000 独立成段，与既有任何区间不相交
+	const val AI_REPORT = 110000
 }

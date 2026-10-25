@@ -6,19 +6,21 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import com.dailycontrol.app.data.dao.AiReportDao
 import com.dailycontrol.app.data.dao.DietRecordDao
 import com.dailycontrol.app.data.dao.ExerciseRecordDao
 import com.dailycontrol.app.data.dao.NutrientItemDao
 import com.dailycontrol.app.data.dao.TodoTaskDao
+import com.dailycontrol.app.data.entity.AiReport
 import com.dailycontrol.app.data.entity.DietRecord
 import com.dailycontrol.app.data.entity.ExerciseRecord
 import com.dailycontrol.app.data.entity.NutrientItem
 import com.dailycontrol.app.data.entity.TodoTask
 
-// Room 数据库：饮食记录（含营养素明细子表）、运动记录、待办任务，后续阶段在此追加新表并递增 version
+// Room 数据库：饮食记录（含营养素明细子表）、运动记录、待办任务、AI 报告，后续阶段在此追加新表并递增 version
 @Database(
-	entities = [DietRecord::class, ExerciseRecord::class, NutrientItem::class, TodoTask::class],
-	version = 4,
+	entities = [DietRecord::class, ExerciseRecord::class, NutrientItem::class, TodoTask::class, AiReport::class],
+	version = 5,
 	exportSchema = true
 )
 abstract class DailyControlDatabase : RoomDatabase() {
@@ -30,6 +32,8 @@ abstract class DailyControlDatabase : RoomDatabase() {
 	abstract fun nutrientItemDao(): NutrientItemDao
 
 	abstract fun todoTaskDao(): TodoTaskDao
+
+	abstract fun aiReportDao(): AiReportDao
 
 	companion object {
 		// 1→2：饮食记录新增「重量/容量」与「营养素明细」两列（零食与营养品需要）
@@ -72,6 +76,31 @@ abstract class DailyControlDatabase : RoomDatabase() {
 			}
 		}
 
+		// 4→5：新增 AI 报告表（第四阶段），归属日唯一索引与实体声明严格一致
+		private val MIGRATION_4_5 = object : Migration(4, 5) {
+			override fun migrate(db: SupportSQLiteDatabase) {
+				db.execSQL(
+					"CREATE TABLE IF NOT EXISTS `ai_report` (" +
+						"`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+						"`reportDateEpochDay` INTEGER NOT NULL, " +
+						"`kind` TEXT NOT NULL, " +
+						"`generatedAt` INTEGER NOT NULL, " +
+						"`summary` TEXT NOT NULL, " +
+						"`dietAnalysis` TEXT NOT NULL, " +
+						"`exerciseAnalysis` TEXT NOT NULL, " +
+						"`suggestionsJson` TEXT NOT NULL, " +
+						"`questionsJson` TEXT NOT NULL, " +
+						"`parseOk` INTEGER NOT NULL, " +
+						"`rawResponse` TEXT NOT NULL, " +
+						"`sentPayload` TEXT NOT NULL)"
+				)
+				db.execSQL(
+					"CREATE UNIQUE INDEX IF NOT EXISTS `index_ai_report_reportDateEpochDay` " +
+						"ON `ai_report` (`reportDateEpochDay`)"
+				)
+			}
+		}
+
 		// 单例入口：全应用共享同一个数据库连接，避免重复打开的开销与竞争
 		@Volatile
 		private var instance: DailyControlDatabase? = null
@@ -82,7 +111,7 @@ abstract class DailyControlDatabase : RoomDatabase() {
 					context.applicationContext,
 					DailyControlDatabase::class.java,
 					"daily_control.db"
-				).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4).build().also { instance = it }
+				).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5).build().also { instance = it }
 			}
 		}
 	}

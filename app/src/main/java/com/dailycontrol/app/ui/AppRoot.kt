@@ -130,7 +130,13 @@ fun DailyControlAppRoot(
 			) { entry ->
 				RecordScreen(initialMeal = entry.arguments?.getString("meal"))
 			}
-			composable("ai") { AiScreen() }
+			composable("ai") {
+				AiScreen(onGoToSettings = {
+					navController.navigate("settings") {
+						launchSingleTop = true
+					}
+				})
+			}
 			composable("settings") { SettingsScreen() }
 			// 规划页：不占底栏，由提醒页入口与 22:00 通知深链进入
 			composable("plan") {

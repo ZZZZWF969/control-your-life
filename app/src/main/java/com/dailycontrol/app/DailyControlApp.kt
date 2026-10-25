@@ -3,8 +3,11 @@ package com.dailycontrol.app
 import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import com.dailycontrol.app.ai.AiReportGenerator
 import com.dailycontrol.app.backup.BackupManager
 import com.dailycontrol.app.notify.NotifyChannels
+import com.dailycontrol.app.notify.Notifier
+import com.dailycontrol.app.schedule.AiReportPlanner
 import com.dailycontrol.app.schedule.DailyPlanner
 import com.dailycontrol.app.schedule.VocabPlanner
 import com.dailycontrol.app.schedule.WakePlanner
@@ -15,9 +18,6 @@ import kotlinx.coroutines.launch
 
 // 应用入口：早于所有界面创建，适合做一次性的全局初始化
 class DailyControlApp : Application() {
-
-	// 应用级协程作用域：启动时的一次性后台任务（如提醒自愈重排）
-	private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
 	override fun onCreate() {
 		super.onCreate()
@@ -30,7 +30,18 @@ class DailyControlApp : Application() {
 			VocabPlanner.reschedule(this@DailyControlApp)
 			WakePlanner.rescheduleFromStore(this@DailyControlApp)
 			BackupManager.ensureScheduledOnStartup(this@DailyControlApp)
+			// AI 报告：重排凌晨 4:00 闹钟，并补做昨日缺失的报告（凌晨关机/闹钟被吞的兜底）
+			AiReportPlanner.reschedule(this@DailyControlApp)
+			val outcome = AiReportGenerator.generateIfDue(this@DailyControlApp)
+			if (outcome is AiReportGenerator.Outcome.Success || outcome is AiReportGenerator.Outcome.Failed) {
+				Notifier.sendAiReportNotification(this@DailyControlApp, outcome)
+			}
 		}
+	}
+
+	companion object {
+		// 应用级协程作用域：启动自愈、以及 Receiver 挂载的长耗时后台任务（如 AI 生成）
+		val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 	}
 
 	// 注册全部通知渠道；重复注册是安全的，系统会忽略已存在的同 ID 渠道
@@ -71,6 +82,12 @@ class DailyControlApp : Application() {
 				NotifyChannels.TODO_ID,
 				getString(R.string.channel_todo_name),
 				NotificationManager.IMPORTANCE_HIGH
+			),
+			// AI 报告渠道：DEFAULT 无声——4:00 出报告不该响铃；渠道行为创建后不可改，故必须新 ID
+			NotificationChannel(
+				NotifyChannels.AI_ID,
+				getString(R.string.channel_ai_name),
+				NotificationManager.IMPORTANCE_DEFAULT
 			),
 			wakeChannel
 		)

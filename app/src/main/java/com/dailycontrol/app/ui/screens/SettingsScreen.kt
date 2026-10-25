@@ -58,6 +58,7 @@ import com.dailycontrol.app.schedule.ReminderReason
 import com.dailycontrol.app.schedule.ReminderScheduler
 import com.dailycontrol.app.ui.components.TimePickerDialog
 import com.dailycontrol.app.util.TimeUtil
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -75,6 +76,7 @@ fun SettingsScreen() {
 	var simPlanHint by remember { mutableStateOf(false) }
 	var simWakeHint by remember { mutableStateOf(false) }
 	var simWakeLastHint by remember { mutableStateOf(false) }
+	var aiAlarmHint by remember { mutableStateOf(false) }
 
 	// 备份区状态：结果提示文本 + 恢复流程的预览（选文件解析出、确认后才执行）
 	var backupResult by remember { mutableStateOf<String?>(null) }
@@ -219,6 +221,10 @@ fun SettingsScreen() {
 			singleLine = true,
 			modifier = Modifier.fillMaxWidth()
 		)
+
+		HorizontalDivider()
+		Text(text = stringResource(R.string.settings_section_ai), style = MaterialTheme.typography.titleMedium)
+		AiConfigSection()
 
 		HorizontalDivider()
 		Text(text = stringResource(R.string.settings_section_backup), style = MaterialTheme.typography.titleMedium)
@@ -519,6 +525,59 @@ fun SettingsScreen() {
 		}
 		dbCheckResult?.let { result ->
 			Text(text = result, style = MaterialTheme.typography.bodyMedium)
+		}
+
+		// AI 调试：把报告水位线回拨 3 天，下次生成为「补交回顾」模式（验收中断补交用）
+		Button(onClick = {
+			scope.launch {
+				val repo = SettingsRepository.get(context)
+				val current = repo.aiLastReportEpochDay.first()
+				repo.setAiLastReportEpochDay(maxOf(0L, current - 3))
+				dbCheckResult = context.getString(R.string.ai_debug_rewind_watermark_done)
+			}
+		}) {
+			Text(stringResource(R.string.ai_debug_rewind_watermark))
+		}
+
+		// AI 调试：插一条 20 天前的旧报告，下次生成时应被 14 天滚动清理删除（验收保留窗用）
+		Button(onClick = {
+			scope.launch {
+				val db = DailyControlDatabase.get(context)
+				val oldDay = java.time.LocalDate.now().toEpochDay() - 20
+				db.aiReportDao().insert(
+					com.dailycontrol.app.data.entity.AiReport(
+						reportDateEpochDay = oldDay,
+						kind = "daily",
+						generatedAt = System.currentTimeMillis(),
+						summary = "测试用旧报告（应被清理）",
+						dietAnalysis = "",
+						exerciseAnalysis = "",
+						suggestionsJson = "[]",
+						questionsJson = "[]",
+						parseOk = true,
+						rawResponse = "",
+						sentPayload = ""
+					)
+				)
+				dbCheckResult = context.getString(R.string.ai_debug_seed_old_report_done)
+			}
+		}) {
+			Text(stringResource(R.string.ai_debug_seed_old_report))
+		}
+
+		// AI 调试：把报告闹钟调到 1 分钟后，走与凌晨 4:00 完全相同的接收器分支验证全链路
+		Button(onClick = {
+			aiAlarmHint = true
+			com.dailycontrol.app.schedule.AiReportPlanner.scheduleDebugInOneMinute(context)
+		}) {
+			Text(stringResource(R.string.ai_debug_alarm_1min))
+		}
+		if (aiAlarmHint) {
+			Text(
+				text = stringResource(R.string.ai_debug_alarm_1min_done),
+				style = MaterialTheme.typography.bodySmall,
+				color = MaterialTheme.colorScheme.onSurfaceVariant
+			)
 		}
 				}
 			}

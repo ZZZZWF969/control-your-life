@@ -61,5 +61,6 @@ class MainActivity : ComponentActivity() {
 		const val ROUTE_TODAY = "today"
 		const val ROUTE_RECORD = "record"
 		const val ROUTE_PLAN = "plan"
+		const val ROUTE_AI = "ai"
 	}
 }

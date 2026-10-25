@@ -44,15 +44,18 @@
 
 - 重复创建同 ID 渠道是安全的，系统忽略——所以每次启动都跑一遍无妨
 - 起床渠道 `channel_wake_v2` 特殊配置：`setSound(null, null)` 纯无声 + `enableVibration(true)` + 强震动模式 `[0, 800, 400, 800, ...]`（震 0.8s 歇 0.4s ×4）。**渠道行为创建后不可修改**是平台规则，改行为只能换 ID——这是 v2 的由来（见 notify-layer.md）
+- AI 渠道 `channel_ai`（0.4.0）注册为 IMPORTANCE_DEFAULT——凌晨 4:00 出报告不能响铃（见 notify-layer.md）
 
 ### 2. 启动自愈（提醒可靠性的第二道保险）
 
-`appScope.launch` 里把五类排程器全部重跑：三餐、规划、待办、背单词、起床唤醒。配合调度层的 BootReceiver（开机广播触发，第一道保险），形成双保险：
+`appScope.launch` 里把全部排程器重跑：三餐、规划、待办、背单词、起床唤醒、每周备份、**AI 报告（0.4.0）**。配合调度层的 BootReceiver（开机广播触发，第一道保险），形成双保险：
 
 - 手机重启 → BootReceiver 重排
 - 闹钟丢失 / 时刻修改 / 应用被杀后重启 → 启动时重排
 
-两类入口调用完全相同的幂等排程方法，所以怎么重跑都安全。
+两类入口调用完全相同的幂等排程方法，所以怎么重跑都安全。AI 报告还多一步：自愈重排后顺手 `generateIfDue` 补生成昨日缺失的报告（凌晨关机/闹钟被吞的场景），成功或失败都会发通知。
+
+`appScope` 定义在 **companion object**（0.4.0 从实例字段移入）：接收器的 AI 分支要把长达 2 分钟的网络生成挂上来，广播本身必须立即结束（详见 schedule-layer.md 的 ReminderReceiver 一节）。
 
 ## MainActivity.kt
 
@@ -62,7 +65,9 @@
 
 | 文件 | 作用 |
 |---|---|
-| `AndroidManifest.xml` | 四项权限（通知/精确闹钟/开机广播/SET_ALARM）+ `<queries>` 包可见性声明（安卓 11+ 不声明就查不到时钟应用和背单词应用的入口，踩过）+ singleTop 主 Activity + 两个接收器 |
+| `AndroidManifest.xml` | 五项权限（通知/精确闹钟/开机广播/SET_ALARM/INTERNET——最后一项 0.4.0 新增，全应用唯一网络出口）+ `networkSecurityConfig`（默认 HTTPS，仅模拟器调试地址放行明文）+ `<queries>` 包可见性声明（安卓 11+ 不声明就查不到时钟应用和背单词应用的入口，踩过）+ singleTop 主 Activity + 两个接收器 |
 | `app/build.gradle.kts` | 版本号在此（versionName/versionCode，规则见 docs/versioning.md） |
 | `app/schemas/` | Room 每个版本的表结构快照（`exportSchema = true` 自动生成），升级迁移时可 diff |
 | `gradle/libs.versions.toml` | 全部依赖的版本目录（Version Catalog），加依赖只改这一处 |
+| `res/xml/network_security_config.xml` | 网络安全策略（0.4.0）：base 禁明文，仅 10.0.2.2 / 127.0.0.1 域外放开明文供模拟器连本地 mock |
+| `script/auto-oper/mock-ai-server.py` | 本地 mock AI 服务（0.4.0）：模拟 OpenAI 兼容端点的成功/401/402/超时/坏格式场景，按模型名关键字切换，开发与自动化验收用 |

@@ -4,6 +4,8 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import com.dailycontrol.app.DailyControlApp
+import com.dailycontrol.app.ai.AiReportGenerator
 import com.dailycontrol.app.backup.BackupManager
 import com.dailycontrol.app.data.db.DailyControlDatabase
 import com.dailycontrol.app.data.entity.MealType
@@ -112,6 +114,15 @@ class ReminderReceiver : BroadcastReceiver() {
 			ReminderReason.BACKUP_WEEKLY -> {
 				BackupManager.autoBackupToDownloads(context)
 				BackupManager.rollWeeklySchedule(context)
+			}
+			// AI 每日报告到点：挂应用级协程后立即结束广播——
+			// 网络生成最长约 2 分钟，超出 goAsync 约 10 秒的窗口，不能沿用本类其余分支的等待模式
+			ReminderReason.AI_REPORT -> {
+				DailyControlApp.appScope.launch {
+					val outcome = AiReportGenerator.generateIfDue(context)
+					Notifier.sendAiReportNotification(context, outcome)
+					AiReportPlanner.reschedule(context)
+				}
 			}
 			// 待办到点提醒：任务未完成才提醒（宽区间，放在最后兜住）
 			in ReminderReason.TODO_TASK_BASE..ReminderReason.TODO_TASK_BASE + 99999 -> {

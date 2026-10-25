@@ -11,4 +11,7 @@ object NotifyChannels {
 	// 起床渠道 v2：纯强震动、无声音（用户偏好，2026-10-17）。
 	// 换 ID 的原因：渠道的声音/震动行为创建后不可修改，旧渠道（带闹钟音量铃声）只能弃用
 	const val WAKE_ID = "channel_wake_v2"
+
+	// AI 报告渠道：DEFAULT 级无声（凌晨 4:00 生成，不该响铃叫醒用户）
+	const val AI_ID = "channel_ai"
 }

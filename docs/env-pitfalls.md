@@ -9,7 +9,7 @@
 - **症状**：AS 里启动模拟器后看到旧版应用/数据凭空消失/新装版本不见。
 - **原因**：模拟器退出时会自动保存快照；下次 Quick Boot 加载快照会把整个虚拟机（含磁盘）回滚到快照时刻。曾两次造成影响（测试数据消失、用户看不到运动功能）。
 - **规避**：
-	- 我方无界面启动一律 `-no-snapshot`；
+	- 开发期无界面启动一律 `-no-snapshot`；
 	- 交付前清理 `~/.android/avd/Medium_Phone.avd/snapshots/default_boot/`（注意：该模拟器优雅退出后仍会再生快照文件，需要每次清理）；
 	- 用户侧建议在 AS Device Manager 将设备启动选项设为 **Cold Boot**（一劳永逸，尚未设置）；
 	- 最可靠的验收方式永远是 AS 里 Run ▶（当场构建安装）。
@@ -78,6 +78,7 @@
 
 - **症状**：dump 读到的还是几轮前的页面（甚至桌面）内容，误导排查方向；小步滚动后立刻 dump 常拿不到更新后的布局。
 - **规避**：每次 dump 前 `rm /sdcard/ui.xml` 再 dump；滚动后等布局稳定（1.5s+）再 dump；大步滚动（1000px+）比多次小滚动可靠。
+- **补充（2026-10-23）**：除了「整页陈旧」，还存在「节点文本陈旧」——状态文本明明已渲染（截图可见），dump 里该节点却仍是旧内容或缺失（曾把 401 错误提示误判为未渲染）。断言「某段动态文本是否出现」时，dump 两次不中就改用 `exec-out screencap -p` 截图肉眼/视觉模型核验，别反复 dump。
 
 ## 15. 模拟器 deskclock 不支持 SET_ALARM 的 SKIP_UI 静默创建
 
@@ -126,3 +127,34 @@
 
 - **症状**：`uiautomator dump` 的 XML 里找不到悬浮按钮「记一笔」的文本、ModalBottomSheet 内的卡片文字，但页面上明明渲染着；按 dump 定位点击会点空。
 - **规避**：Compose 部分组件（FAB、弹层内容）不进无障碍树，验证与定位以截图为准；dump 适合拿普通文本节点与 Checkbox（checkable/checked 属性可靠）。另注意 `dumpsys alarm | grep -c` 会把每条闹钟后的摘要行（`type=RTC_WAKEUP tag=...`）一并计入，计数会虚高 1，精确断言用 origWhen 值过滤。
+
+## 23. API 37 模拟器：应用访问 10.0.2.2 卡死在 SYN-SENT（2026-10-23 AI 接口联调 ★）
+
+- **症状**：应用内 HTTP 请求 `http://10.0.2.2:18080/...` 永远超时；`adb shell ss -tn` 显示该连接停留在 `SYN-SENT`（目标是 `[::ffff:10.0.2.2]`——IPv4 映射的 IPv6 套接字）。而同一地址用 shell 里的 `nc`（纯 IPv4 套接字）一打就通，极易误导成「网络正常、代码有 bug」。
+- **原因**：Android 应用的所有 socket 都是 v4-mapped IPv6；这台模拟器的 QEMU 用户态网络对「映射 v6 套接字 → 10.0.2.2 宿主别名」不做 NAT（对普通公网地址正常），SYN 出去就石沉大海。
+- **规避**：改用 **adb 端口反向转发**——`adb reverse tcp:18080 tcp:18080`，应用内地址填 `http://127.0.0.1:18080/v1`（经 adb 隧道直达宿主机，稳定可靠）；`network_security_config.xml` 的明文放行清单需同时含 `10.0.2.2` 与 `127.0.0.1`。另：跑本地 mock 服务用 `python -u` 无缓冲启动，否则日志文件迟迟不落盘，会误判「请求没到」。
+
+## 24. HyperOS 真机：普通 USB 调试禁止 adb 注入输入（2026-10-24 真机验收实测）
+
+- **症状**：真机（HyperOS 2 / Android 15）已授权 USB 调试，`adb shell input tap/swipe/keyevent` 全部抛 `SecurityException: Injecting input events requires ... INJECT_EVENTS`；锁屏状态下同样被拒。读操作（screencap / uiautomator dump / install / logcat）不受影响。
+- **原因**：MIUI/HyperOS 把输入注入划入「USB 调试（安全设置）」的额外授权，需登录小米账号并在开发者选项单独开启；普通 USB 调试只放行只读与安装类操作。
+- **规避**：真机验收/走查不必去开「安全设置」——改用**分工模式**：用户手动操作手机，adb 只做只读核验（截图 + uiautomator dump 断言界面文本 + logcat 验证接收器触发）。需要全自动 UI 驱动的场景留给无界面模拟器（不受此限制）。
+
+## 25. cmd 批处理含中文 UTF-8 会被 GBK 双字节配对撕碎（2026-10-24 自检脚本实测）
+
+- **症状**：UTF-8 编码的 `.bat` 在 cmd 里执行，中文行附近的命令被撕成乱码命令（如 `bash.exe` 变成 `'ash.exe' 不是内部或外部命令`）。
+- **原因**：cmd 用系统 ANSI 码页（GBK）逐行解析批处理，UTF-8 中文字节的高位字节两两配对时会吞掉行尾换行符或下一行行首字符；且 `chcp 65001` 在含非 ASCII 内容的批处理中还会引发文件偏移错乱（cmd 按字节记位置，码页切换后重新对位失败）。
+- **规避**：`.bat` 一律**纯 ASCII**（含 rem 注释）；中文输出交给 bash/python 子进程打印，入口处 `chcp 65001` 只为让子进程的 UTF-8 输出正常显示——纯 ASCII 文件下 chcp 是安全的。参考 `script/check-env.bat`。
+
+## 26. MSYS 的 grep 在部分挂载点会先剥掉 \r 再匹配（2026-10-24 回归测试实测）
+
+- **症状**：`grep -q $'\r' 文件` 在仓库盘路径（/e/...）能命中 CRLF 文件，在 /tmp 下永远不命中；同一文件用 `tr -dc '\r' | wc -c` 却能数出 CR 字节。
+- **原因**：MSYS 挂载点分文本/二进制模式，文本模式挂载下（如 /tmp）grep 读文件先做 CRLF→LF 转换；cygdrive 挂载默认二进制模式不做转换。
+- **规避**：检测文件是否含 CR 不要用 grep，用 `tr -dc '\r' < 文件 | wc -c`（走 shell 重定向，不受挂载模式影响）。参考 `script/check-env.sh` 的 `gradlew_is_crlf`。
+
+## 27. wsl.exe 的参数重组会吞内层引号、错层级展开 $?（2026-10-24 退出码排查实测）
+
+- **症状**：`wsl bash -c 'bash -c "exit 1"; echo $?'` 之类的嵌套调用拿到错误退出码（明明内层退出 1 却显示 0）；含 `$?` 的 -c 字符串在错误的层级被展开；MSYS 还会把以 / 开头的参数改写成 `C:/Program Files/Git/...`（同第 2 条路径改写家族）。
+- **原因**：`wsl bash -c "..."` 的参数经「Git Bash argv → Windows 命令行 → wsl.exe → Linux」多轮拆装，内层双引号可能丢失、`$?` 可能在中间层提前展开。
+- **规避**：验证 WSL 内命令的真实退出码，不要用 `-c` 内嵌 `$?`——写个临时脚本文件（LF 行尾）在里面把 `rc=$?` 落地到结果文件，外面 `MSYS_NO_PATHCONV=1 wsl bash /mnt/c/.../脚本.sh` 执行后读文件。
+
