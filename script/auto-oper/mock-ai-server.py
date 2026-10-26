@@ -50,7 +50,10 @@ class Handler(BaseHTTPRequestHandler):
 		length = int(self.headers.get("Content-Length", 0))
 		body = json.loads(self.rfile.read(length) or b"{}")
 		model = str(body.get("model", ""))
-		print("[mock] POST %s model=%s messages=%d" % (self.path, model, len(body.get("messages", []))))
+		messages = body.get("messages", [])
+		# 打印 system 消息摘要：自动化验收「自定义提示词是否真的上行」的观测点
+		system_brief = next((str(m.get("content", ""))[:60] for m in messages if m.get("role") == "system"), "")
+		print("[mock] POST %s model=%s messages=%d system[:60]=%s" % (self.path, model, len(messages), system_brief))
 		if "err401" in model:
 			return self._send_json(401, {"error": {"message": "模拟：Key 无效"}})
 		if "err402" in model:

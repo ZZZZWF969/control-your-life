@@ -126,6 +126,12 @@ class SettingsRepository private constructor(private val context: Context) {
 		prefs[KEY_AI_PROFILE_JSON] ?: "[]"
 	}
 
+	// 自定义 system 提示词（0.4.1）：空串 = 用应用内置默认。它是用户的定制资产，
+	// 是唯一随备份导出的 AI 键（换机带走）；其余 ai_* 键仍不入备份（Key 红线等）
+	val aiCustomSystemPrompt: Flow<String> = context.dataStore.data.map { prefs ->
+		prefs[KEY_AI_CUSTOM_SYSTEM_PROMPT] ?: ""
+	}
+
 	suspend fun setThemeMode(mode: ThemeMode) {
 		context.dataStore.edit { prefs ->
 			prefs[KEY_THEME_MODE] = mode.storageName
@@ -212,6 +218,10 @@ class SettingsRepository private constructor(private val context: Context) {
 		context.dataStore.edit { it[KEY_AI_PROFILE_JSON] = json }
 	}
 
+	suspend fun setAiCustomSystemPrompt(text: String) {
+		context.dataStore.edit { it[KEY_AI_CUSTOM_SYSTEM_PROMPT] = text }
+	}
+
 	// ===== 备份支持：设置的全量快照与还原 =====
 	// 键名与 DataStore 键一一对应（字符串化），备份文件里人类可读；
 	// last_backup_at 属于运行痕迹，不入备份
@@ -230,6 +240,8 @@ class SettingsRepository private constructor(private val context: Context) {
 			put("wake_date", prefs[KEY_WAKE_DATE] ?: "")
 			put("wake_times", prefs[KEY_WAKE_TIMES] ?: "")
 			put("wake_clock_confirmed", prefs[KEY_WAKE_CLOCK_CONFIRMED] ?: "")
+			// 自定义 system 提示词随备份导出（用户定制资产）；其余 ai_* 键不入备份（Key 红线等）
+			put("ai_custom_system_prompt", prefs[KEY_AI_CUSTOM_SYSTEM_PROMPT] ?: "")
 		}
 	}
 
@@ -247,6 +259,7 @@ class SettingsRepository private constructor(private val context: Context) {
 			values["wake_date"]?.let { prefs[KEY_WAKE_DATE] = it }
 			values["wake_times"]?.let { prefs[KEY_WAKE_TIMES] = it }
 			values["wake_clock_confirmed"]?.let { prefs[KEY_WAKE_CLOCK_CONFIRMED] = it }
+			values["ai_custom_system_prompt"]?.let { prefs[KEY_AI_CUSTOM_SYSTEM_PROMPT] = it }
 		}
 	}
 
@@ -277,6 +290,7 @@ class SettingsRepository private constructor(private val context: Context) {
 		private val KEY_AI_LAST_ERROR_TEXT = stringPreferencesKey("ai_last_error_text")
 		private val KEY_AI_LAST_ATTEMPT_AT = longPreferencesKey("ai_last_attempt_at")
 		private val KEY_AI_PROFILE_JSON = stringPreferencesKey("ai_profile_json")
+		private val KEY_AI_CUSTOM_SYSTEM_PROMPT = stringPreferencesKey("ai_custom_system_prompt")
 
 		@Volatile
 		private var instance: SettingsRepository? = null

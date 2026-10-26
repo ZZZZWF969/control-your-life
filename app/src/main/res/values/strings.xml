@@ -30,6 +30,16 @@
 	<string name="ai_key_visibility_show">显示</string>
 	<string name="ai_key_visibility_hide">隐藏</string>
 	<string name="ai_security_note">Key 仅保存在本机（卸载应用即清除），不随备份导出，也只发送到你在上面填写的这一个地址。</string>
+	<!-- 提示词定制（0.4.1 增量批） -->
+	<string name="ai_prompt_custom_title">提示词定制（高级）</string>
+	<string name="ai_prompt_custom_hint">下方是当前生效的完整 system 提示词（未定制时为应用默认）——它决定 AI 的角色、语气、建议导向与输出格式，改完保存，下一次报告即生效；定制内容会随备份导出。其中「输出要求」的 JSON 格式约定是应用拆解报告的依据：改动它会在保存时弹出红色警告并要求二次确认，改坏后果为报告无法拆解成板块（按原文保存，数据不丢），点「恢复默认」可随时还原。</string>
+	<string name="ai_prompt_danger_title">警告：JSON 输出格式约定被修改</string>
+	<string name="ai_prompt_danger_text">检测到你改动或删除了「输出要求」的 JSON 格式约定。应用依赖这些约定拆解 AI 的返回——修改后 AI 的回复可能无法解析成报告板块，将降级为纯文本保存（数据不丢，但排版与建议卡片全部丢失），且属于未知风险。确定要这样保存吗？</string>
+	<string name="ai_prompt_danger_confirm">仍要保存</string>
+	<string name="ai_prompt_custom_length">当前长度：%1$d 字</string>
+	<string name="ai_prompt_custom_reset">恢复默认</string>
+	<string name="ai_prompt_custom_saved">已保存，下一次生成报告时生效</string>
+	<string name="ai_prompt_custom_reset_done">已恢复应用默认提示词</string>
 
 	<!-- AI 页（0.4.0 第四阶段） -->
 	<string name="ai_unconfigured_title">AI 生活建议还没配置</string>

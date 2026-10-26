@@ -21,21 +21,48 @@ object AiPromptBuilder {
 		"snack" to "零食", "supplement" to "营养品"
 	)
 
-	fun buildSystemMessage(): AiClient.ChatMessage {
-		val systemText = """
+	// 可定制的风格段默认值：角色、参照系、建议导向、营养指引原则、提问原则——
+	// 与输出契约段共同拼成完整默认提示词（编辑框全量可见可改）
+	private fun buildDefaultStyleText(): String {
+		return """
 			你是一位严谨的营养学顾问，服务对象是一名用生活管理应用记录饮食与运动的年轻人。只基于提供的数据给建议，不要编造数据中不存在的信息；用户无明显过量饮食时不要建议节食。参照《中国居民膳食指南（2022）》等权威建议。
 
+			建议导向：你的使命是帮助用户养成可长期坚持的生活习惯。建议以「值得坚持、值得培养、值得调整的长期习惯」为主（依据近90天长期概要判断），给出的动作应当是用户能天天执行的；针对单日显著异常的即时纠正为辅；单日的小波动不值得给建议，除非在长期概要中反复出现。
+
+			营养补充原则：检测到营养素摄入不足或过量时，明确指出营养素名称，补充途径分两层——优先给食物来源；若该营养素日常饮食难以足量获取、适合营养品补充（如维生素D、钙、B族），同时给出营养品建议并注明"以产品说明或医嘱为准"，不得指定或编造品牌。内容宁可具体详细，不要为压缩篇幅牺牲信息量。
+
+			提问原则：questions 是你要向用户提出的问题。提问务必审慎：用户档案里已有的信息不要再问；身高体重目标等长期不变的信息只在档案缺失时问一次（type 填 profile）；昨晚睡眠等短期波动信息可在相关分析确有需要时问（type 填 oneoff）；没有真正需要的信息就给空数组，不要为了提问而提问。
+		""".trimIndent()
+	}
+
+	// 输出契约段：JSON 报文格式与全部字段约定——应用的解析与界面渲染依赖这些约定。
+	// 编辑框中可见可改，但保存时检测到本段被改动会弹红色二次确认（未知风险警告）
+	private fun buildContractText(): String {
+		return """
 			输出要求（必须严格遵守）：
 			1. 只输出一个 JSON 对象，不要输出任何其他文字、解释或代码围栏。
-			2. 格式：{"date":"YYYY-MM-DD","summary":"关键要点1；要点2；要点3","dietAnalysis":"饮食板块分析，120字内","exerciseAnalysis":"运动板块分析，120字内","suggestions":[{"topic":"主题词","headline":"行动摘要","detail":"展开说明","level":"普通","basis":"建议依据"}],"questions":[]}
-			3. suggestions 给 3 到 5 条，按重要性从高到低排列；level 只能填"普通"或"提醒"。summary 是 2 到 4 个关键要点：每个要点为一句 15 字内短语，用中文分号"；"分隔，共 60 字内——概括当日最重要的事实与结论（如"饮品含糖偏多；晚餐缺主食；无运动记录"）。
-			4. 每条建议遵循「先做什么、再为什么」：headline 约 15 字，用动宾结构直说要做什么（如"餐后吃橙子猕猴桃补维C"），不写原因；detail 80 字内，展开具体执行——份量、时机、替代选择，涉及营养品时写明剂型与参考剂量区间并注明"以产品说明或医嘱为准"；basis 60 字内，先写数据中的具体事实，再写权威参照与推荐量（如《中国居民膳食指南》建议每天蔬菜300-500克、水果200-350克）。
-			5. 检测到营养素摄入不足或过量时，明确指出营养素名称，补充途径分两层：优先给食物来源；若该营养素日常饮食难以足量获取、适合营养品补充（如维生素D、钙、B族），同时给出营养品建议——写明常见剂型与参考剂量区间，并注明"以产品说明或医嘱为准"。不得指定或编造品牌。
-			6. 内容宁可具体详细，不要为压缩篇幅牺牲信息量；但不要输出约定之外的字段。
-			7. questions 是你要向用户提出的问题，每问格式 {"topic":"主题","text":"问题","type":"profile或oneoff"}。提问务必审慎：用户档案里已有的信息不要再问；身高体重目标等长期不变的信息只在档案缺失时问一次（type 填 profile）；昨晚睡眠等短期波动信息可在相关分析确有需要时问（type 填 oneoff）；没有真正需要的信息就给空数组，不要为了提问而提问。
-			8. 全部内容使用简体中文。
+			2. 格式：{"date":"YYYY-MM-DD","summary":"关键要点1；要点2；要点3","dietAnalysis":"饮食板块分析，120字内","exerciseAnalysis":"运动板块分析，120字内","suggestions":[{"topic":"主题词","headline":"行动摘要","detail":"展开说明","level":"普通","basis":"建议依据"}],"questions":[{"topic":"主题","text":"问题","type":"profile或oneoff"}]}
+			3. suggestions 给 3 到 5 条，按重要性从高到低排列；level 只能填"普通"或"提醒"。summary 是 2 到 4 个关键要点：每个要点为一句 15 字内短语，用中文分号"；"分隔，共 60 字内。
+			4. 每条建议遵循「先做什么、再为什么」：headline 约 15 字，用动宾结构直说要做什么，不写原因；detail 80 字内，展开具体执行——份量、时机、替代选择；basis 60 字内，先写数据中的具体事实，再写权威参照与推荐量（如《中国居民膳食指南》建议每天蔬菜300-500克、水果200-350克）。
+			5. 全部内容使用简体中文。
 		""".trimIndent()
-		return AiClient.ChatMessage("system", systemText)
+	}
+
+	// system 消息：应用内保存的自定义提示词非空时整体覆盖（全量含契约），空则用全量默认
+	fun buildSystemMessage(customPrompt: String): AiClient.ChatMessage {
+		val text = customPrompt.trim().ifBlank { buildFullDefaultText() }
+		return AiClient.ChatMessage("system", text)
+	}
+
+	// 编辑框预填与二次确认检测的公共素材
+	fun buildFullDefaultText(): String {
+		return buildDefaultStyleText() + "\n\n" + buildContractText()
+	}
+
+	// 契约完整性检测（保存前调用）：编辑文本仍完整包含未改动的输出契约段，
+	// 返回 false 时界面弹红色二次确认（改动契约会破坏报告拆解，降级原文保存）
+	fun keepsContract(text: String): Boolean {
+		return text.contains(buildContractText())
 	}
 
 	// 提示词上行用的轻量结构：档案（主题→答案）与待提交追问（问题→答案），
@@ -58,6 +85,7 @@ object AiPromptBuilder {
 		detailDiet: List<DietRecordWithItems>,
 		detailExercise: List<ExerciseRecord>,
 		summaryJson: JSONObject,
+		summaryLongJson: JSONObject,
 		recentSuggestionTexts: List<String>,
 		profileItems: List<ProfileBrief>,
 		pendingAnswers: List<PendingAnswerBrief>
@@ -72,7 +100,9 @@ object AiPromptBuilder {
 			}
 		)
 		root.put("报告归属日", targetDate.toString())
+		// 双窗口概要：近期模式（日常报告「相对常态变化」的参照）+ 长期习惯基线（习惯养成建议的依据）
 		root.put("近30天概要", summaryJson)
+		root.put("近90天长期概要", summaryLongJson)
 		root.put("明细数据日期范围", "$detailFrom 至 $detailTo")
 		root.put("饮食明细", buildDietDetail(detailDiet))
 		root.put("运动明细", buildExerciseDetail(detailExercise))

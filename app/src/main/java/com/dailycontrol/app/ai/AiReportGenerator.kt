@@ -25,6 +25,9 @@ object AiReportGenerator {
 	// 概要统计窗口（与首份报告的明细窗口一致）
 	private const val SUMMARY_WINDOW_DAYS = 30
 
+	// 长期概要窗口（0.4.1 增量批：长期习惯基线，建议导向「习惯养成」的依据）
+	private const val LONG_WINDOW_DAYS = 90
+
 	// 单飞锁：闹钟、启动自愈、页面懒检查可能同时到点，只允许一次真实生成
 	private val generateMutex = Mutex()
 
@@ -100,7 +103,7 @@ object AiReportGenerator {
 				TimeUtil.startOfDayMillis(detailFrom), TimeUtil.endOfDayMillis(yesterday)
 			)
 
-			// 近 30 天概要与近几天已给建议（防重复）独立于明细窗口计算
+			// 近 30 天概要 + 近 90 天长期概要与近几天已给建议（防重复）独立于明细窗口计算
 			val summaryFrom = yesterday.minusDays(SUMMARY_WINDOW_DAYS - 1L)
 			val summaryDiet = db.dietRecordDao().getBetweenOnce(
 				TimeUtil.startOfDayMillis(summaryFrom), TimeUtil.endOfDayMillis(yesterday)
@@ -109,6 +112,14 @@ object AiReportGenerator {
 				TimeUtil.startOfDayMillis(summaryFrom), TimeUtil.endOfDayMillis(yesterday)
 			)
 			val summaryJson = AiDataSummarizer.build(summaryDiet, summaryExercise, SUMMARY_WINDOW_DAYS)
+			val longFrom = yesterday.minusDays(LONG_WINDOW_DAYS - 1L)
+			val longDiet = db.dietRecordDao().getBetweenOnce(
+				TimeUtil.startOfDayMillis(longFrom), TimeUtil.endOfDayMillis(yesterday)
+			)
+			val longExercise = db.exerciseRecordDao().getBetweenOnce(
+				TimeUtil.startOfDayMillis(longFrom), TimeUtil.endOfDayMillis(yesterday)
+			)
+			val summaryLongJson = AiDataSummarizer.build(longDiet, longExercise, LONG_WINDOW_DAYS)
 			val recentSuggestions = db.aiReportDao().recentParsed(3)
 				.flatMap { report -> suggestionsBrief(report.suggestionsJson) }
 
@@ -134,9 +145,13 @@ object AiReportGenerator {
 
 			val userMessage = AiPromptBuilder.buildUserMessage(
 				mode, yesterday, detailFrom, yesterday, detailDiet, detailExercise, summaryJson,
-				recentSuggestions, profileBriefs, pendingAnswers
+				summaryLongJson, recentSuggestions, profileBriefs, pendingAnswers
 			)
-			val messages = listOf(AiPromptBuilder.buildSystemMessage(), userMessage)
+			val messages = listOf(
+				// 应用内「提示词定制」保存的非空文本会整体覆盖内置默认
+				AiPromptBuilder.buildSystemMessage(repo.aiCustomSystemPrompt.first()),
+				userMessage
+			)
 			val sentPayload = AiPromptBuilder.buildSentPayloadText(userMessage)
 
 			// 无论成败都记录尝试时刻（AI 页状态卡展示）

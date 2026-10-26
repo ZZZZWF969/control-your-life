@@ -84,7 +84,7 @@ Jetpack Compose 声明式界面：**界面 = 状态的函数**，状态变了界
 
 ### AiConfigSection.kt（设置页·AI 接口区，0.4.0）
 
-三要素输入（地址 / Key 掩码 + 显示切换 / 模型名，本地编辑优先防 DataStore 回流打断输入）+「测试连接」（发最小请求验证链路，三要素填齐才可点）+ 安全说明文案。`snapshotFlow` 监听三要素「齐整↔残缺」切换时调用 `AiReportPlanner.reschedule`——避免每个按键都重排闹钟，又保证配齐/删空的瞬间闹钟状态正确。
+三要素输入（地址 / Key 掩码 + 显示切换 / 模型名，本地编辑优先防 DataStore 回流打断输入）+「测试连接」（发最小请求验证链路，三要素填齐才可点）+ 安全说明文案。`snapshotFlow` 监听三要素「齐整↔残缺」切换时调用 `AiReportPlanner.reschedule`——避免每个按键都重排闹钟，又保证配齐/删空的瞬间闹钟状态正确。尾部「**提示词定制（高级）**」折叠区（0.4.1）：警示文案 + 多行编辑框预填完整 system 提示词（自定义 or 内置默认）+ 保存/恢复默认；保存时检测 JSON 输出契约段是否被改动（`AiPromptBuilder.keepsContract`），被改动则弹红色警告 AlertDialog 二次确认后才放行；定制随备份导出。
 
 ### OnboardingScreen.kt（首启权限向导，2026-10-19 批次四）
 

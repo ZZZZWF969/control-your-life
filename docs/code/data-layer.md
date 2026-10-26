@@ -124,5 +124,5 @@ DAO（Data Access Object）只声明方法签名 + SQL 注解，实现由 Room �
 	- `lastPlannedDate`：最近一次保存规划的日期，22:00/23:00 提醒据此判断当晚是否已规划
 	- `wakePlanDate` + `wakePlanTimes`：起床唤醒计划存档（目标日期 + 各声时刻），**开机自愈的依据**；空日期表示无计划
 	- `wakeClockConfirmedDate`：用户自记「时钟闹钟已开」的日期（应用读不到系统时钟，见 schedule 层的 WakePlanner）
-	- AI 七键（0.4.0~0.4.1）：三要素 `aiBaseUrl` / `aiApiKey` / `aiModel`（都非空 = 功能启用），水位线 `aiLastReportEpochDay`（0 = 从未生成；**成功才推进**，详见 ai-layer.md），运行痕迹 `aiLastErrorText` / `aiLastAttemptAt`，个人档案 `aiProfileJson`（0.4.1：档案型追问答案的长期存档 `[{topic,question,answer,updatedAt}]`，按 topic 覆盖）
-	- **AI 各键全部刻意不入 backupSettings/restoreSettings**：Key 属敏感信息不随备份导出（安全红线）；水位线/档案/错误属运行痕迹，恢复后按新环境重建
+	- AI 八键（0.4.0~0.4.1）：三要素 `aiBaseUrl` / `aiApiKey` / `aiModel`（都非空 = 功能启用），水位线 `aiLastReportEpochDay`（0 = 从未生成；**成功才推进**，详见 ai-layer.md），运行痕迹 `aiLastErrorText` / `aiLastAttemptAt`，个人档案 `aiProfileJson`（0.4.1：档案型追问答案的长期存档 `[{topic,question,answer,updatedAt}]`，按 topic 覆盖），自定义 system 提示词 `aiCustomSystemPrompt`（0.4.1：空 = 用内置默认）
+	- **备份策略分两档**：`aiCustomSystemPrompt` **随备份导出**（用户定制资产，换机带走——唯一入备份的 AI 键）；其余 AI 键（Key 红线、运行痕迹）一律不入 backupSettings/restoreSettings
