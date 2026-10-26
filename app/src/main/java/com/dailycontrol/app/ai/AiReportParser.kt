@@ -30,7 +30,9 @@ object AiReportParser {
 			return null
 		}
 		val suggestions = normalizeSuggestions(root.optJSONArray("suggestions"))
-		val questions = root.optJSONArray("questions") ?: JSONArray()
+		// 追问归一化（0.4.1）：缺 topic 取问题前 10 字、缺 type 按 oneoff——
+		// 缺省按一次性最安全（大不了下次再问），实体结构与 AiAnswers.parseQuestions 对齐
+		val questions = normalizeQuestions(root.optJSONArray("questions"))
 		return ParsedReport(summary, diet, exercise, suggestions.toString(), questions.toString())
 	}
 
@@ -50,6 +52,28 @@ object AiReportParser {
 			return null
 		}
 		return text.substring(start, end + 1)
+	}
+
+	// 追问列表归一化：兼容把 text 写成 question 的返回；空正文条目跳过
+	private fun normalizeQuestions(array: JSONArray?): JSONArray {
+		val result = JSONArray()
+		if (array == null) {
+			return result
+		}
+		for (i in 0 until array.length()) {
+			val item = array.optJSONObject(i) ?: continue
+			val text = item.optString("text", "").ifBlank { item.optString("question", "") }
+			if (text.isBlank()) {
+				continue
+			}
+			result.put(
+				JSONObject()
+					.put("topic", item.optString("topic", "").ifBlank { text.take(10) })
+					.put("text", text)
+					.put("type", if (item.optString("type", "") == "profile") "profile" else "oneoff")
+			)
+		}
+		return result
 	}
 
 	// 逐条宽容读取建议列表：缺 headline/detail 的条目回退旧 content 字段（兼容旧报告），

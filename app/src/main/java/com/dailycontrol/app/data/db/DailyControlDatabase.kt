@@ -20,7 +20,7 @@ import com.dailycontrol.app.data.entity.TodoTask
 // Room 数据库：饮食记录（含营养素明细子表）、运动记录、待办任务、AI 报告，后续阶段在此追加新表并递增 version
 @Database(
 	entities = [DietRecord::class, ExerciseRecord::class, NutrientItem::class, TodoTask::class, AiReport::class],
-	version = 5,
+	version = 6,
 	exportSchema = true
 )
 abstract class DailyControlDatabase : RoomDatabase() {
@@ -101,6 +101,13 @@ abstract class DailyControlDatabase : RoomDatabase() {
 			}
 		}
 
+		// 5→6：AI 报告表加追问答案列（0.4.1 追问机制）；默认空数组与实体 @ColumnInfo 一致
+		private val MIGRATION_5_6 = object : Migration(5, 6) {
+			override fun migrate(db: SupportSQLiteDatabase) {
+				db.execSQL("ALTER TABLE ai_report ADD COLUMN answersJson TEXT NOT NULL DEFAULT '[]'")
+			}
+		}
+
 		// 单例入口：全应用共享同一个数据库连接，避免重复打开的开销与竞争
 		@Volatile
 		private var instance: DailyControlDatabase? = null
@@ -111,7 +118,7 @@ abstract class DailyControlDatabase : RoomDatabase() {
 					context.applicationContext,
 					DailyControlDatabase::class.java,
 					"daily_control.db"
-				).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5).build().also { instance = it }
+				).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6).build().also { instance = it }
 			}
 		}
 	}

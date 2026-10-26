@@ -55,12 +55,37 @@
 	<string name="ai_section_diet">饮食分析</string>
 	<string name="ai_section_exercise">运动分析</string>
 	<string name="ai_section_suggestions">建议</string>
+	<string name="ai_section_analysis">分析</string>
+	<string name="ai_section_dialog_log">对话记录</string>
+	<string name="ai_analysis_diet_sub">饮食</string>
+	<string name="ai_analysis_exercise_sub">运动</string>
 	<string name="ai_suggestion_basis_label">依据：%1$s</string>
 	<string name="ai_suggestion_expand">展开详情</string>
 	<string name="ai_suggestion_collapse">收起</string>
 	<string name="ai_raw_response">原始返回（AI 回复原文）</string>
 	<string name="ai_sent_payload">本次发送的数据（隐私自查）</string>
 	<string name="ai_raw_parse_bad_hint">本次 AI 返回未按约定 JSON 格式，无法拆解成板块，以下为原文（数据未丢失；可返回列表重新生成）：</string>
+
+	<!-- AI 追问机制（0.4.1） -->
+	<string name="ai_qa_banner_title">AI 想问你 %1$d 个问题</string>
+	<string name="ai_qa_banner_hint">顺手答完，明天的报告更懂你</string>
+	<string name="ai_qa_section_title">追问</string>
+	<string name="ai_qa_type_profile">档案型</string>
+	<string name="ai_qa_type_oneoff">一次性</string>
+	<string name="ai_qa_answer_hint">写下你的回答</string>
+	<string name="ai_qa_answer_save">保存答案</string>
+	<string name="ai_qa_answer_cancel">取消</string>
+	<string name="ai_qa_answer_edit">修改</string>
+	<string name="ai_qa_answer_delete">删除</string>
+	<string name="ai_qa_status_pending">待随下次报告提交</string>
+	<string name="ai_qa_status_submitted">已随 %1$s 的报告提交</string>
+	<string name="ai_profile_entry">档案</string>
+	<string name="ai_profile_title">个人档案</string>
+	<string name="ai_profile_empty">还没有档案信息：AI 的档案型问题（如身高体重）答过一次后，答案会存在这里并随每次报告携带</string>
+	<string name="ai_profile_updated_at">更新于 %1$s</string>
+	<string name="ai_history_entry">历史</string>
+	<string name="ai_history_title">问答历史</string>
+	<string name="ai_history_empty">还没有回答过 AI 的问题；报告详情里的「AI 的追问」答过之后会记录在这里</string>
 	<string name="ai_debug_rewind_watermark">AI调试：水位线回拨3天</string>
 	<string name="ai_debug_rewind_watermark_done">已回拨，下次生成将走「补交回顾」模式</string>
 	<string name="ai_debug_seed_old_report">AI调试：灌一条20天前旧报告</string>

@@ -1,5 +1,6 @@
 package com.dailycontrol.app.data.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
@@ -15,9 +16,12 @@ data class AiReport(
 	val summary: String,          // 一句话总评
 	val dietAnalysis: String,     // 饮食板块分析正文
 	val exerciseAnalysis: String, // 运动板块分析正文
-	val suggestionsJson: String,  // 建议列表的 JSON 文本：[{topic,content,level}]
-	val questionsJson: String,    // AI 追问列表（0.4.1 启用，本版恒为空数组）
+	val suggestionsJson: String,  // 建议列表的 JSON 文本：[{topic,headline,detail,level,basis}]
+	val questionsJson: String,    // AI 追问列表：[{topic,text,type}]，0.4.1 起启用
 	val parseOk: Boolean,         // 返回是否成功拆解；false 时界面降级展示 rawResponse
 	val rawResponse: String,      // AI 原始返回全文（排查问题与降级展示的兜底）
-	val sentPayload: String       // 本次发送给 AI 的完整数据文本（「发送了什么」自查入口）
+	val sentPayload: String,      // 本次发送给 AI 的完整数据文本（「发送了什么」自查入口）
+	// 追问答案（0.4.1）：[{question,type,answer,answeredAt,submittedEpochDay}]
+	// 问题文本随答案冗余存储，作答与提交自包含；旧报告迁移默认空数组
+	@ColumnInfo(defaultValue = "[]") val answersJson: String = "[]"
 )

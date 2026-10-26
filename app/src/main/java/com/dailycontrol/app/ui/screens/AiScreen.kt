@@ -1,5 +1,6 @@
 package com.dailycontrol.app.ui.screens
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -26,7 +27,9 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -42,6 +45,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dailycontrol.app.R
+import com.dailycontrol.app.ai.AiAnswers
 import com.dailycontrol.app.ai.AiReportGenerator
 import com.dailycontrol.app.data.db.DailyControlDatabase
 import com.dailycontrol.app.data.entity.AiReport
@@ -72,10 +76,12 @@ fun AiScreen(onGoToSettings: () -> Unit) {
 	val reports by db.aiReportDao().observeRecent(today.toEpochDay() - 13)
 		.collectAsStateWithLifecycle(initialValue = emptyList())
 
-	// 生成中标志与结果提示（文本 + 是否成功的标记，配色用）；详情用选中报告切换（null=列表态）
+	// 生成中标志与结果提示（文本 + 是否成功的标记，配色用）；详情/档案/历史用选中态切换（null/false=列表态）
 	var generating by remember { mutableStateOf(false) }
 	var resultHint by remember { mutableStateOf<Pair<String, Boolean>?>(null) }
 	var selectedReport by remember { mutableStateOf<AiReport?>(null) }
+	var showProfile by remember { mutableStateOf(false) }
+	var showHistory by remember { mutableStateOf(false) }
 
 	// 懒检查兜底：进页发现昨日报告缺失（闹钟被吞/刚配好接口/恢复备份后）时静默补生成；
 	// 与凌晨闹钟共用生成器内部的单飞锁，并发触发时后到者按水位线自动跳过
@@ -87,11 +93,36 @@ fun AiScreen(onGoToSettings: () -> Unit) {
 		}
 	}
 
+	// 详情/档案/历史是页内状态而非导航路由：拦截系统返回键先关闭子视图，
+	// 否则会直接退出 AI 页（用户在详情里按返回的直觉是回列表）
+	BackHandler(enabled = selectedReport != null || showProfile || showHistory) {
+		selectedReport = null
+		showProfile = false
+		showHistory = false
+	}
+
 	val selected = selectedReport
 	if (selected != null) {
 		AiReportDetail(report = selected, onBack = { selectedReport = null })
 		return
 	}
+	if (showProfile) {
+		AiProfileView(onBack = { showProfile = false })
+		return
+	}
+	if (showHistory) {
+		AiHistoryView(reports = reports, onBack = { showHistory = false })
+		return
+	}
+
+	// 追问统计：横幅计数与「点击直达最新含未答问题的报告」共用一套判定（问题无对应非空答案即未答）
+	fun unansweredQuestionsOf(row: AiReport): Int {
+		val questions = AiAnswers.parseQuestions(row.questionsJson)
+		val answered = AiAnswers.parseAnswers(row.answersJson).filter { it.answer.isNotBlank() }
+		return questions.count { question -> answered.none { it.question == question.text } }
+	}
+	val unansweredCount = reports.sumOf { unansweredQuestionsOf(it) }
+	val latestWithUnanswered = reports.firstOrNull { unansweredQuestionsOf(it) > 0 }
 
 	Column(
 		modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
@@ -121,6 +152,30 @@ fun AiScreen(onGoToSettings: () -> Unit) {
 				}
 			}
 		} else {
+			// 追问横幅：有未答问题时置顶提醒，点击直达最新含未答问题的报告详情
+			if (unansweredCount > 0 && latestWithUnanswered != null) {
+				Card(
+					modifier = Modifier.fillMaxWidth().clickable { selectedReport = latestWithUnanswered },
+					colors = CardDefaults.cardColors(
+						containerColor = MaterialTheme.colorScheme.secondaryContainer,
+						contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+					)
+				) {
+					Column(
+						modifier = Modifier.fillMaxWidth().padding(16.dp),
+						verticalArrangement = Arrangement.spacedBy(4.dp)
+					) {
+						Text(
+							text = stringResource(R.string.ai_qa_banner_title, unansweredCount),
+							style = MaterialTheme.typography.titleMedium
+						)
+						Text(
+							text = stringResource(R.string.ai_qa_banner_hint),
+							style = MaterialTheme.typography.bodySmall
+						)
+					}
+				}
+			}
 			// 状态卡：上次报告 + 自动排程说明 + 最近失败原因（如有）
 			Card(modifier = Modifier.fillMaxWidth()) {
 				Column(
@@ -211,10 +266,23 @@ fun AiScreen(onGoToSettings: () -> Unit) {
 			}
 
 			HorizontalDivider()
-			Text(
-				text = stringResource(R.string.ai_report_list_title),
-				style = MaterialTheme.typography.titleMedium
-			)
+			Row(
+				modifier = Modifier.fillMaxWidth(),
+				verticalAlignment = Alignment.CenterVertically
+			) {
+				Text(
+					text = stringResource(R.string.ai_report_list_title),
+					style = MaterialTheme.typography.titleMedium,
+					modifier = Modifier.weight(1f)
+				)
+				// 档案与问答历史入口（0.4.1）
+				TextButton(onClick = { showProfile = true }) {
+					Text(stringResource(R.string.ai_profile_entry))
+				}
+				TextButton(onClick = { showHistory = true }) {
+					Text(stringResource(R.string.ai_history_entry))
+				}
+			}
 			if (reports.isEmpty()) {
 				Text(
 					text = stringResource(R.string.ai_report_empty),
@@ -327,7 +395,7 @@ private fun AiReportDetail(report: AiReport, onBack: () -> Unit) {
 				}
 			}
 		} else {
-			// 总评大字卡：整页的视觉锚点，第一眼重点
+			// 总评：关键要点分点卡（模型按分号分隔输出要点；旧报告一句话无分隔符时自然单行）
 			if (report.summary.isNotBlank()) {
 				Card(
 					modifier = Modifier.fillMaxWidth(),
@@ -336,43 +404,380 @@ private fun AiReportDetail(report: AiReport, onBack: () -> Unit) {
 						contentColor = MaterialTheme.colorScheme.onPrimaryContainer
 					)
 				) {
-					Text(
-						text = report.summary,
-						style = MaterialTheme.typography.titleLarge,
-						modifier = Modifier.fillMaxWidth().padding(20.dp)
-					)
+					Column(
+						modifier = Modifier.fillMaxWidth().padding(16.dp),
+						verticalArrangement = Arrangement.spacedBy(6.dp)
+					) {
+						Text(
+							text = stringResource(R.string.ai_section_summary),
+							style = MaterialTheme.typography.labelMedium
+						)
+						splitSummaryPoints(report.summary).forEach { point ->
+							Text(text = "· $point", style = MaterialTheme.typography.titleMedium)
+						}
+					}
 				}
 			}
-			// 建议区：行动输出是用户最关心的，排在板块分析之前；主色标题强调
+			// 建议板块（默认收起，展开显示逐条建议卡）
 			if (suggestions.isNotEmpty()) {
-				Text(
-					text = stringResource(R.string.ai_section_suggestions),
-					style = MaterialTheme.typography.titleMedium,
-					color = MaterialTheme.colorScheme.primary
-				)
-				suggestions.forEach { suggestion ->
-					SuggestionCard(suggestion = suggestion)
+				CollapsibleSection(title = stringResource(R.string.ai_section_suggestions)) {
+					suggestions.forEach { suggestion ->
+						SuggestionCard(suggestion = suggestion)
+					}
 				}
 			}
-			// 板块分析：视觉弱化退居二线（标题用次要色）
-			if (report.dietAnalysis.isNotBlank()) {
-				SectionCard(title = stringResource(R.string.ai_section_diet), body = report.dietAnalysis)
-			}
-			if (report.exerciseAnalysis.isNotBlank()) {
-				SectionCard(title = stringResource(R.string.ai_section_exercise), body = report.exerciseAnalysis)
+			// 追问板块（自带折叠头；无问题不渲染）
+			AiQaSection(report = report)
+			// 分析板块：饮食与运动两小节，默认收起（两段都空则整个板块不渲染）
+			if (report.dietAnalysis.isNotBlank() || report.exerciseAnalysis.isNotBlank()) {
+				CollapsibleSection(title = stringResource(R.string.ai_section_analysis)) {
+					if (report.dietAnalysis.isNotBlank()) {
+						SubSectionText(
+							subTitle = stringResource(R.string.ai_analysis_diet_sub),
+							body = report.dietAnalysis
+						)
+					}
+					if (report.exerciseAnalysis.isNotBlank()) {
+						SubSectionText(
+							subTitle = stringResource(R.string.ai_analysis_exercise_sub),
+							body = report.exerciseAnalysis
+						)
+					}
+				}
 			}
 		}
 
-		// 两个原始查看入口：AI 回复原文 + 本次发送的数据（隐私自查承诺的可验证入口）
-		ExpandableTextCard(
-			title = stringResource(R.string.ai_raw_response),
-			body = report.rawResponse
-		)
-		ExpandableTextCard(
-			title = stringResource(R.string.ai_sent_payload),
-			body = report.sentPayload
-		)
+		// 对话记录板块：发送数据与 AI 原文两小节，默认收起（格式异常的降级报告也可查）
+		CollapsibleSection(title = stringResource(R.string.ai_section_dialog_log)) {
+			SubSectionText(
+				subTitle = stringResource(R.string.ai_sent_payload),
+				body = report.sentPayload
+			)
+			SubSectionText(
+				subTitle = stringResource(R.string.ai_raw_response),
+				body = report.rawResponse
+			)
+		}
 		Spacer(modifier = Modifier.height(8.dp))
+	}
+}
+
+// ===== AI 追问机制（0.4.1）：详情追问板块 / 个人档案 / 问答历史 =====
+
+// 追问板块：每题一卡，未答显示输入框、已答显示答案与提交状态；保存即落库
+// （本地态与数据库同步：作答后 Flow 重发同 id 报告，remember(report.id) 不重置，两边一致）
+@Composable
+private fun AiQaSection(report: AiReport) {
+	val questions = remember(report.id) { AiAnswers.parseQuestions(report.questionsJson) }
+	if (questions.isEmpty()) {
+		return
+	}
+	val context = LocalContext.current
+	val scope = rememberCoroutineScope()
+	var answers by remember(report.id) { mutableStateOf(AiAnswers.parseAnswers(report.answersJson)) }
+
+	Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+		CollapsibleSection(title = stringResource(R.string.ai_qa_section_title)) {
+			questions.forEach { question ->
+				QaQuestionCard(
+					question = question,
+					current = answers.firstOrNull { it.question == question.text },
+					onSave = { answerText ->
+						answers = upsertAnswer(answers, question, answerText)
+						scope.launch {
+							DailyControlDatabase.get(context).aiReportDao()
+								.updateAnswers(report.id, AiAnswers.answersToJson(answers))
+						}
+					},
+					onDelete = {
+						answers = answers.filterNot { it.question == question.text }.toMutableList()
+						scope.launch {
+							DailyControlDatabase.get(context).aiReportDao()
+								.updateAnswers(report.id, AiAnswers.answersToJson(answers))
+						}
+					}
+				)
+			}
+		}
+	}
+}
+
+// 单题卡：类型徽标 + 问题正文；未答/编辑态是输入框，已答态是答案 + 状态 + 修改/删除
+@Composable
+private fun QaQuestionCard(
+	question: AiAnswers.QuestionItem,
+	current: AiAnswers.AnswerItem?,
+	onSave: (String) -> Unit,
+	onDelete: () -> Unit
+) {
+	val answered = current != null && current.answer.isNotBlank()
+	var editing by remember(question.text) { mutableStateOf(!answered) }
+	var text by remember(question.text) { mutableStateOf(current?.answer ?: "") }
+	Card(modifier = Modifier.fillMaxWidth()) {
+		Column(
+			modifier = Modifier.fillMaxWidth().padding(16.dp),
+			verticalArrangement = Arrangement.spacedBy(8.dp)
+		) {
+			Text(
+				text = stringResource(
+					if (question.type == "profile") R.string.ai_qa_type_profile else R.string.ai_qa_type_oneoff
+				),
+				style = MaterialTheme.typography.labelSmall,
+				color = if (question.type == "profile") {
+					MaterialTheme.colorScheme.tertiary
+				} else {
+					MaterialTheme.colorScheme.onSurfaceVariant
+				}
+			)
+			Text(text = question.text, style = MaterialTheme.typography.bodyLarge)
+			if (editing) {
+				OutlinedTextField(
+					value = text,
+					onValueChange = { text = it },
+					label = { Text(stringResource(R.string.ai_qa_answer_hint)) },
+					modifier = Modifier.fillMaxWidth()
+				)
+				Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+					Button(
+						onClick = {
+							onSave(text.trim())
+							editing = false
+						},
+						enabled = text.isNotBlank()
+					) {
+						Text(stringResource(R.string.ai_qa_answer_save))
+					}
+					if (answered) {
+						TextButton(onClick = {
+							text = current!!.answer
+							editing = false
+						}) {
+							Text(stringResource(R.string.ai_qa_answer_cancel))
+						}
+					}
+				}
+			} else {
+				Text(text = current!!.answer, style = MaterialTheme.typography.bodyMedium)
+				Text(
+					text = if (current.submittedEpochDay > 0) {
+						stringResource(
+							R.string.ai_qa_status_submitted,
+							TimeUtil.formatDate(LocalDate.ofEpochDay(current.submittedEpochDay))
+						)
+					} else {
+						stringResource(R.string.ai_qa_status_pending)
+					},
+					style = MaterialTheme.typography.bodySmall,
+					color = MaterialTheme.colorScheme.onSurfaceVariant
+				)
+				Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+					TextButton(onClick = { editing = true }) {
+						Text(stringResource(R.string.ai_qa_answer_edit))
+					}
+					TextButton(onClick = onDelete) {
+						Text(stringResource(R.string.ai_qa_answer_delete))
+					}
+				}
+			}
+		}
+	}
+}
+
+// 作答落库前的列表更新：同题覆盖（保留提交标记），新答追加
+private fun upsertAnswer(
+	items: List<AiAnswers.AnswerItem>,
+	question: AiAnswers.QuestionItem,
+	answerText: String
+): MutableList<AiAnswers.AnswerItem> {
+	val existing = items.firstOrNull { it.question == question.text }
+	return if (existing == null) {
+		(items + AiAnswers.AnswerItem(
+			question = question.text,
+			type = question.type,
+			answer = answerText,
+			answeredAt = System.currentTimeMillis(),
+			submittedEpochDay = 0L
+		)).toMutableList()
+	} else {
+		items.map {
+			if (it.question == question.text) {
+				it.copy(answer = answerText, answeredAt = System.currentTimeMillis())
+			} else {
+				it
+			}
+		}.toMutableList()
+	}
+}
+
+// 个人档案：档案型追问答案的长期存档，可改可删（改 = 按 topic 覆盖回写）
+@Composable
+private fun AiProfileView(onBack: () -> Unit) {
+	val context = LocalContext.current
+	val scope = rememberCoroutineScope()
+	val settings = SettingsRepository.get(context)
+	val profileJson by settings.aiProfileJson.collectAsStateWithLifecycle(initialValue = "[]")
+	val items = remember(profileJson) { AiAnswers.parseProfile(profileJson) }
+
+	Column(
+		modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
+		verticalArrangement = Arrangement.spacedBy(16.dp)
+	) {
+		Row(verticalAlignment = Alignment.CenterVertically) {
+			IconButton(onClick = onBack) {
+				Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.ai_detail_back))
+			}
+			Text(text = stringResource(R.string.ai_profile_title), style = MaterialTheme.typography.titleLarge)
+		}
+		if (items.isEmpty()) {
+			Text(
+				text = stringResource(R.string.ai_profile_empty),
+				style = MaterialTheme.typography.bodySmall,
+				color = MaterialTheme.colorScheme.onSurfaceVariant
+			)
+		} else {
+			items.forEach { item ->
+				ProfileItemCard(
+					item = item,
+					onSave = { newAnswer ->
+						scope.launch {
+							settings.setAiProfileJson(
+								AiAnswers.profileToJson(AiAnswers.mergeProfileItem(items, item.topic, item.question, newAnswer))
+							)
+						}
+					},
+					onDelete = {
+						scope.launch {
+							settings.setAiProfileJson(
+								AiAnswers.profileToJson(items.filterNot { it.topic == item.topic })
+							)
+						}
+					}
+				)
+			}
+		}
+	}
+}
+
+// 单条档案卡：主题 + 当初的问题（小字）+ 答案 + 更新时间，可编辑可删除
+@Composable
+private fun ProfileItemCard(
+	item: AiAnswers.ProfileItem,
+	onSave: (String) -> Unit,
+	onDelete: () -> Unit
+) {
+	var editing by remember { mutableStateOf(false) }
+	var text by remember(item.answer) { mutableStateOf(item.answer) }
+	Card(modifier = Modifier.fillMaxWidth()) {
+		Column(
+			modifier = Modifier.fillMaxWidth().padding(16.dp),
+			verticalArrangement = Arrangement.spacedBy(4.dp)
+		) {
+			Text(text = item.topic, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
+			if (item.question.isNotBlank()) {
+				Text(
+					text = item.question,
+					style = MaterialTheme.typography.bodySmall,
+					color = MaterialTheme.colorScheme.onSurfaceVariant
+				)
+			}
+			if (editing) {
+				OutlinedTextField(
+					value = text,
+					onValueChange = { text = it },
+					modifier = Modifier.fillMaxWidth()
+				)
+				Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+					Button(onClick = { onSave(text.trim()); editing = false }, enabled = text.isNotBlank()) {
+						Text(stringResource(R.string.action_save))
+					}
+					TextButton(onClick = { text = item.answer; editing = false }) {
+						Text(stringResource(R.string.ai_qa_answer_cancel))
+					}
+				}
+			} else {
+				Text(text = item.answer, style = MaterialTheme.typography.bodyMedium)
+				Text(
+					text = stringResource(R.string.ai_profile_updated_at, TimeUtil.formatDateTime(item.updatedAt)),
+					style = MaterialTheme.typography.bodySmall,
+					color = MaterialTheme.colorScheme.onSurfaceVariant
+				)
+				Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+					TextButton(onClick = { editing = true }) {
+						Text(stringResource(R.string.ai_qa_answer_edit))
+					}
+					TextButton(onClick = onDelete) {
+						Text(stringResource(R.string.ai_qa_answer_delete))
+					}
+				}
+			}
+		}
+	}
+}
+
+// 问答历史：全部报告的已答条目按作答时间倒序，含提交状态标注
+@Composable
+private fun AiHistoryView(reports: List<AiReport>, onBack: () -> Unit) {
+	data class HistoryEntry(val reportDateEpochDay: Long, val answer: AiAnswers.AnswerItem)
+	val entries = remember(reports) {
+		reports.flatMap { row ->
+			AiAnswers.parseAnswers(row.answersJson)
+				.filter { it.answer.isNotBlank() }
+				.map { HistoryEntry(row.reportDateEpochDay, it) }
+		}.sortedByDescending { it.answer.answeredAt }
+	}
+
+	Column(
+		modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
+		verticalArrangement = Arrangement.spacedBy(12.dp)
+	) {
+		Row(verticalAlignment = Alignment.CenterVertically) {
+			IconButton(onClick = onBack) {
+				Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.ai_detail_back))
+			}
+			Text(text = stringResource(R.string.ai_history_title), style = MaterialTheme.typography.titleLarge)
+		}
+		if (entries.isEmpty()) {
+			Text(
+				text = stringResource(R.string.ai_history_empty),
+				style = MaterialTheme.typography.bodySmall,
+				color = MaterialTheme.colorScheme.onSurfaceVariant
+			)
+		} else {
+			entries.forEach { entry ->
+				Card(modifier = Modifier.fillMaxWidth()) {
+					Column(
+						modifier = Modifier.fillMaxWidth().padding(16.dp),
+						verticalArrangement = Arrangement.spacedBy(4.dp)
+					) {
+						Text(
+							text = stringResource(
+								if (entry.answer.type == "profile") R.string.ai_qa_type_profile else R.string.ai_qa_type_oneoff
+							),
+							style = MaterialTheme.typography.labelSmall,
+							color = MaterialTheme.colorScheme.onSurfaceVariant
+						)
+						Text(text = entry.answer.question, style = MaterialTheme.typography.bodyMedium)
+						Text(
+							text = entry.answer.answer,
+							style = MaterialTheme.typography.bodyMedium,
+							color = MaterialTheme.colorScheme.primary
+						)
+						Text(
+							text = (if (entry.answer.submittedEpochDay > 0) {
+								stringResource(
+									R.string.ai_qa_status_submitted,
+									TimeUtil.formatDate(LocalDate.ofEpochDay(entry.answer.submittedEpochDay))
+								)
+							} else {
+								stringResource(R.string.ai_qa_status_pending)
+							}) + " · " + TimeUtil.formatDateTime(entry.answer.answeredAt),
+							style = MaterialTheme.typography.bodySmall,
+							color = MaterialTheme.colorScheme.onSurfaceVariant
+						)
+					}
+				}
+			}
+		}
 	}
 }
 
@@ -458,59 +863,55 @@ private fun SuggestionCard(suggestion: SuggestionItem) {
 	}
 }
 
-// 板块卡：标题（次要色小标题——分析内容相对建议属二线信息）+ 正文
+// 折叠板块：标题行（主色+箭头）整行可点，展开显示该板块的卡片们；默认收起——
+// 报告详情四板块（建议/追问/分析/对话记录）统一用它，页面结构一眼可辨
 @Composable
-private fun SectionCard(title: String, body: String) {
-	if (body.isBlank()) {
-		return
-	}
-	Card(modifier = Modifier.fillMaxWidth()) {
-		Column(
-			modifier = Modifier.fillMaxWidth().padding(20.dp),
-			verticalArrangement = Arrangement.spacedBy(8.dp)
+private fun CollapsibleSection(title: String, content: @Composable () -> Unit) {
+	var expanded by remember { mutableStateOf(false) }
+	Column(modifier = Modifier.fillMaxWidth().animateContentSize()) {
+		Row(
+			modifier = Modifier.fillMaxWidth()
+				.clickable { expanded = !expanded }
+				.padding(vertical = 10.dp),
+			verticalAlignment = Alignment.CenterVertically
 		) {
 			Text(
 				text = title,
-				style = MaterialTheme.typography.titleSmall,
-				color = MaterialTheme.colorScheme.onSurfaceVariant
+				style = MaterialTheme.typography.titleMedium,
+				color = MaterialTheme.colorScheme.primary,
+				modifier = Modifier.weight(1f)
 			)
-			Text(text = body, style = MaterialTheme.typography.bodyMedium)
+			Icon(
+				imageVector = if (expanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
+				contentDescription = null,
+				tint = MaterialTheme.colorScheme.onSurfaceVariant
+			)
+		}
+		if (expanded) {
+			Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+				content()
+			}
 		}
 	}
 }
 
-// 折叠文本卡：默认收起，点标题展开（原始返回 / 发送数据可能很长，收起时不碍眼）
+// 折叠板块内的小节：小标题（次要色）+ 小字正文——分析板块的饮食/运动、
+// 对话记录板块的发送数据/AI 原文都用它
 @Composable
-private fun ExpandableTextCard(title: String, body: String) {
-	var expanded by remember { mutableStateOf(false) }
-	Card(modifier = Modifier.fillMaxWidth()) {
-		Column(modifier = Modifier.fillMaxWidth().animateContentSize()) {
-			Row(
-				modifier = Modifier.fillMaxWidth()
-					.clickable { expanded = !expanded }
-					.padding(16.dp),
-				verticalAlignment = Alignment.CenterVertically
-			) {
-				Text(
-					text = title,
-					style = MaterialTheme.typography.titleSmall,
-					modifier = Modifier.weight(1f)
-				)
-				Icon(
-					imageVector = if (expanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
-					contentDescription = null,
-					tint = MaterialTheme.colorScheme.onSurfaceVariant
-				)
-			}
-			if (expanded) {
-				Text(
-					text = body,
-					style = MaterialTheme.typography.bodySmall,
-					modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 16.dp)
-				)
-			}
-		}
+private fun SubSectionText(subTitle: String, body: String) {
+	Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+		Text(
+			text = subTitle,
+			style = MaterialTheme.typography.titleSmall,
+			color = MaterialTheme.colorScheme.onSurfaceVariant
+		)
+		Text(text = body, style = MaterialTheme.typography.bodySmall)
 	}
+}
+
+// 总评分点：模型按中文分号分隔输出要点；兼容旧报告的一句话（无分隔符则整段单行）
+private fun splitSummaryPoints(summary: String): List<String> {
+	return summary.split('；', ';', '\n').map { it.trim() }.filter { it.isNotEmpty() }
 }
 
 // 建议列表解析：坏字段跳过，不拖垮整页；headline/detail 为新字段，

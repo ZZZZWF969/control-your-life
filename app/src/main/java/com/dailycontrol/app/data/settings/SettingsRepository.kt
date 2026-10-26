@@ -120,6 +120,12 @@ class SettingsRepository private constructor(private val context: Context) {
 		prefs[KEY_AI_LAST_ATTEMPT_AT] ?: 0L
 	}
 
+	// 个人档案 JSON（0.4.1）：AI 档案型追问的答案按主题覆盖存档，随每次报告携带
+	// 结构 [{topic,question,answer,updatedAt}]；同 ai_* 键约定不入备份
+	val aiProfileJson: Flow<String> = context.dataStore.data.map { prefs ->
+		prefs[KEY_AI_PROFILE_JSON] ?: "[]"
+	}
+
 	suspend fun setThemeMode(mode: ThemeMode) {
 		context.dataStore.edit { prefs ->
 			prefs[KEY_THEME_MODE] = mode.storageName
@@ -202,6 +208,10 @@ class SettingsRepository private constructor(private val context: Context) {
 		context.dataStore.edit { it[KEY_AI_LAST_ATTEMPT_AT] = millis }
 	}
 
+	suspend fun setAiProfileJson(json: String) {
+		context.dataStore.edit { it[KEY_AI_PROFILE_JSON] = json }
+	}
+
 	// ===== 备份支持：设置的全量快照与还原 =====
 	// 键名与 DataStore 键一一对应（字符串化），备份文件里人类可读；
 	// last_backup_at 属于运行痕迹，不入备份
@@ -266,6 +276,7 @@ class SettingsRepository private constructor(private val context: Context) {
 		private val KEY_AI_LAST_REPORT_EPOCH_DAY = longPreferencesKey("ai_last_report_epoch_day")
 		private val KEY_AI_LAST_ERROR_TEXT = stringPreferencesKey("ai_last_error_text")
 		private val KEY_AI_LAST_ATTEMPT_AT = longPreferencesKey("ai_last_attempt_at")
+		private val KEY_AI_PROFILE_JSON = stringPreferencesKey("ai_profile_json")
 
 		@Volatile
 		private var instance: SettingsRepository? = null
