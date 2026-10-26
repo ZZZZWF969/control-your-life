@@ -52,8 +52,9 @@ Room 的 `@Relation` 用法：一次查询同时拿到「记录 + 它的全部�
 一行 = 一次成功生成的 AI 报告（归属日唯一索引，同日重生成整行 REPLACE）：
 
 - `reportDateEpochDay` + `kind`（first/daily/backfill）+ `generatedAt`：归属、模式、时刻
-- 结构化字段（summary / dietAnalysis / exerciseAnalysis / suggestionsJson / questionsJson）供 AI 页拆板块渲染；`questionsJson` 恒为空数组——**0.4.1 追问机制的预留位**
+- 结构化字段（summary / dietAnalysis / exerciseAnalysis / suggestionsJson / questionsJson）供 AI 页拆板块渲染；`questionsJson` 为 AI 追问列表 `[{topic,text,type}]`（0.4.1 启用，由解析层归一化）
 - `parseOk` + `rawResponse` + `sentPayload`：格式异常降级开关、AI 原文（排查兜底）、本次发送数据全文（隐私自查入口的数据来源）——原文永远留档，数据永不丢
+- `answersJson`（0.4.1，DB v6 加列，默认 `[]`）：追问答案 `[{question,type,answer,answeredAt,submittedEpochDay}]`——问题文本冗余存储使作答与提交自包含；重生成同日报告时由生成器按问题文本匹配保留
 
 ### MealType.kt（枚举，非表）
 
@@ -86,6 +87,7 @@ DAO（Data Access Object）只声明方法签名 + SQL 注解，实现由 Room �
 - `observeRecent(fromEpochDay)`：只取保留窗内的报告（新→旧），AI 页列表订阅
 - `recentParsed(count)`：最近几份「解析成功」的报告——提示词的「近几天已给建议勿重复」段落数据源
 - `deleteOlderThan(beforeEpochDay)`：14 天滚动清理，每次成功生成后调用
+- `getAllOnce` / `updateAnswers`（0.4.1）：生成前收集已答未提交的追问答案；界面作答只更新答案列
 
 ### TodoTaskDao.kt
 
@@ -98,8 +100,8 @@ DAO（Data Access Object）只声明方法签名 + SQL 注解，实现由 Room �
 
 ## db/DailyControlDatabase.kt —— 单例与迁移
 
-- `@Database(... version = 5, exportSchema = true)`：版本号每次改表结构必须 +1，同时**必须**补一段 `Migration`，否则老用户升级直接崩（Room 校验版本差没有迁移路径就抛异常）。`exportSchema = true` 会把每版表结构快照存进 `app/schemas/`，升级时可 diff 对比
-- 四段迁移（1→2 加列、2→3 建子表、3→4 建待办表、4→5 建 ai_report 报告表）都直接写 SQL——迁移 SQL 必须与 Room 期望的表结构**严格一致**（含外键、索引、NOT NULL），否则运行时校验失败
+- `@Database(... version = 6, exportSchema = true)`：版本号每次改表结构必须 +1，同时**必须**补一段 `Migration`，否则老用户升级直接崩（Room 校验版本差没有迁移路径就抛异常）。`exportSchema = true` 会把每版表结构快照存进 `app/schemas/`，升级时可 diff 对比
+- 五段迁移（1→2 加列、2→3 建子表、3→4 建待办表、4→5 建 ai_report 报告表、5→6 报告表加 answersJson 列）都直接写 SQL——迁移 SQL 必须与 Room 期望的表结构**严格一致**（含外键、索引、NOT NULL），否则运行时校验失败
 - `get(context)` 是双重检查锁定单例：全应用共享一个数据库连接。`@Volatile` 保证多线程读到的是已构造完成的对象
 
 ## settings/ —— DataStore 设置仓库
@@ -122,5 +124,5 @@ DAO（Data Access Object）只声明方法签名 + SQL 注解，实现由 Room �
 	- `lastPlannedDate`：最近一次保存规划的日期，22:00/23:00 提醒据此判断当晚是否已规划
 	- `wakePlanDate` + `wakePlanTimes`：起床唤醒计划存档（目标日期 + 各声时刻），**开机自愈的依据**；空日期表示无计划
 	- `wakeClockConfirmedDate`：用户自记「时钟闹钟已开」的日期（应用读不到系统时钟，见 schedule 层的 WakePlanner）
-	- AI 六键（0.4.0）：三要素 `aiBaseUrl` / `aiApiKey` / `aiModel`（都非空 = 功能启用），水位线 `aiLastReportEpochDay`（0 = 从未生成；**成功才推进**，详见 ai-layer.md），运行痕迹 `aiLastErrorText` / `aiLastAttemptAt`
-	- **AI 六键全部刻意不入 backupSettings/restoreSettings**：Key 属敏感信息不随备份导出（安全红线）；水位线与错误属运行痕迹，恢复后按新环境重建
+	- AI 八键（0.4.0~0.4.1）：三要素 `aiBaseUrl` / `aiApiKey` / `aiModel`（都非空 = 功能启用），水位线 `aiLastReportEpochDay`（0 = 从未生成；**成功才推进**，详见 ai-layer.md），运行痕迹 `aiLastErrorText` / `aiLastAttemptAt`，个人档案 `aiProfileJson`（0.4.1：档案型追问答案的长期存档 `[{topic,question,answer,updatedAt}]`，按 topic 覆盖），自定义 system 提示词 `aiCustomSystemPrompt`（0.4.1：空 = 用内置默认）
+	- **备份策略分两档**：`aiCustomSystemPrompt` **随备份导出**（用户定制资产，换机带走——唯一入备份的 AI 键）；其余 AI 键（Key 红线、运行痕迹）一律不入 backupSettings/restoreSettings

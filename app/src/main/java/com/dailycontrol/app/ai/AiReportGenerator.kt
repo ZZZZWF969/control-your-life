@@ -25,6 +25,9 @@ object AiReportGenerator {
 	// 概要统计窗口（与首份报告的明细窗口一致）
 	private const val SUMMARY_WINDOW_DAYS = 30
 
+	// 长期概要窗口（0.4.1 增量批：长期习惯基线，建议导向「习惯养成」的依据）
+	private const val LONG_WINDOW_DAYS = 90
+
 	// 单飞锁：闹钟、启动自愈、页面懒检查可能同时到点，只允许一次真实生成
 	private val generateMutex = Mutex()
 
@@ -100,7 +103,7 @@ object AiReportGenerator {
 				TimeUtil.startOfDayMillis(detailFrom), TimeUtil.endOfDayMillis(yesterday)
 			)
 
-			// 近 30 天概要与近几天已给建议（防重复）独立于明细窗口计算
+			// 近 30 天概要 + 近 90 天长期概要与近几天已给建议（防重复）独立于明细窗口计算
 			val summaryFrom = yesterday.minusDays(SUMMARY_WINDOW_DAYS - 1L)
 			val summaryDiet = db.dietRecordDao().getBetweenOnce(
 				TimeUtil.startOfDayMillis(summaryFrom), TimeUtil.endOfDayMillis(yesterday)
@@ -109,13 +112,46 @@ object AiReportGenerator {
 				TimeUtil.startOfDayMillis(summaryFrom), TimeUtil.endOfDayMillis(yesterday)
 			)
 			val summaryJson = AiDataSummarizer.build(summaryDiet, summaryExercise, SUMMARY_WINDOW_DAYS)
+			val longFrom = yesterday.minusDays(LONG_WINDOW_DAYS - 1L)
+			val longDiet = db.dietRecordDao().getBetweenOnce(
+				TimeUtil.startOfDayMillis(longFrom), TimeUtil.endOfDayMillis(yesterday)
+			)
+			val longExercise = db.exerciseRecordDao().getBetweenOnce(
+				TimeUtil.startOfDayMillis(longFrom), TimeUtil.endOfDayMillis(yesterday)
+			)
+			val summaryLongJson = AiDataSummarizer.build(longDiet, longExercise, LONG_WINDOW_DAYS)
 			val recentSuggestions = db.aiReportDao().recentParsed(3)
 				.flatMap { report -> suggestionsBrief(report.suggestionsJson) }
 
+			// 追问机制（0.4.1）：读个人档案 + 收集全部「已答未提交」的追问答案，随本次请求一并携带。
+			// 每条待提交答案带上主题（从所属报告的 questionsJson 反查，档案并入时用）
+			data class PendingEntry(val reportId: Long, val item: AiAnswers.AnswerItem, val topic: String)
+			val profileBriefs = AiAnswers.parseProfile(repo.aiProfileJson.first())
+				.map { AiPromptBuilder.ProfileBrief(it.topic, it.answer) }
+			val allReports = db.aiReportDao().getAllOnce()
+			val pendingEntries = allReports.flatMap { row ->
+				val questions = AiAnswers.parseQuestions(row.questionsJson)
+				AiAnswers.parseAnswers(row.answersJson)
+					.filter { it.answer.isNotBlank() && it.submittedEpochDay == 0L }
+					.map { item ->
+						PendingEntry(
+							reportId = row.id,
+							item = item,
+							topic = questions.firstOrNull { it.text == item.question }?.topic ?: item.question.take(10)
+						)
+					}
+			}
+			val pendingAnswers = pendingEntries.map { AiPromptBuilder.PendingAnswerBrief(it.item.question, it.item.answer) }
+
 			val userMessage = AiPromptBuilder.buildUserMessage(
-				mode, yesterday, detailFrom, yesterday, detailDiet, detailExercise, summaryJson, recentSuggestions
+				mode, yesterday, detailFrom, yesterday, detailDiet, detailExercise, summaryJson,
+				summaryLongJson, recentSuggestions, profileBriefs, pendingAnswers
 			)
-			val messages = listOf(AiPromptBuilder.buildSystemMessage(), userMessage)
+			val messages = listOf(
+				// 应用内「提示词定制」保存的非空文本会整体覆盖内置默认
+				AiPromptBuilder.buildSystemMessage(repo.aiCustomSystemPrompt.first()),
+				userMessage
+			)
 			val sentPayload = AiPromptBuilder.buildSentPayloadText(userMessage)
 
 			// 无论成败都记录尝试时刻（AI 页状态卡展示）
@@ -123,6 +159,16 @@ object AiReportGenerator {
 			when (val callResult = AiClient.chat(config.baseUrl, config.apiKey, config.model, messages)) {
 				is AiClient.CallResult.Success -> {
 					val parsed = AiReportParser.parse(callResult.content)
+					// 重新生成同日报告（REPLACE 整行）前，按问题文本匹配保留旧答案——
+					// 用户的作答不因重新生成而丢；保留的答案随本次请求提交，直接带上提交日
+					val newQuestions = parsed?.let { AiAnswers.parseQuestions(it.questionsJson) } ?: emptyList()
+					val oldAnswers = db.aiReportDao().getByDate(yesterday.toEpochDay())
+						?.let { row -> AiAnswers.parseAnswers(row.answersJson).filter { it.answer.isNotBlank() } }
+						?: emptyList()
+					val preservedAnswers = newQuestions.mapNotNull { question ->
+						oldAnswers.firstOrNull { it.question == question.text }
+							?.copy(type = question.type, submittedEpochDay = yesterday.toEpochDay())
+					}
 					val report = AiReport(
 						reportDateEpochDay = yesterday.toEpochDay(),
 						kind = mode.name.lowercase(),
@@ -134,13 +180,45 @@ object AiReportGenerator {
 						questionsJson = parsed?.questionsJson ?: "[]",
 						parseOk = parsed != null,
 						rawResponse = callResult.content,
-						sentPayload = sentPayload
+						sentPayload = sentPayload,
+						answersJson = AiAnswers.answersToJson(preservedAnswers)
 					)
 					db.aiReportDao().insert(report)
 					db.aiReportDao().deleteOlderThan(today.toEpochDay() - (KEEP_DAYS - 1))
 					// 接口成功即推进水位线；格式异常不阻塞次日流程（原文已存档，状态卡会提示可重试）
 					repo.setAiLastReportEpochDay(yesterday.toEpochDay())
 					repo.setAiLastErrorText(if (parsed == null) "上次生成：返回格式异常，已按原文保存，可重新生成" else "")
+					// 追问记账（成功才动，与水位线同哲学）：随本次请求提交的答案标记提交日，
+					// 档案型答案按主题并入个人档案。同日旧行刚被 REPLACE 替换的，其答案已随
+					// preservedAnswers 写入新行并标记，跳过旧 id 的回写
+					if (pendingEntries.isNotEmpty()) {
+						val submitDay = yesterday.toEpochDay()
+						pendingEntries.groupBy { it.reportId }.forEach { (reportId, entries) ->
+							val row = allReports.firstOrNull { it.id == reportId } ?: return@forEach
+							if (row.reportDateEpochDay == submitDay) {
+								return@forEach
+							}
+							val marked = AiAnswers.parseAnswers(row.answersJson).map { item ->
+								val matched = entries.any {
+									it.item.question == item.question && it.item.answer == item.answer
+								}
+								if (matched && item.submittedEpochDay == 0L) {
+									item.copy(submittedEpochDay = submitDay)
+								} else {
+									item
+								}
+							}
+							db.aiReportDao().updateAnswers(reportId, AiAnswers.answersToJson(marked))
+						}
+						val profileTyped = pendingEntries.filter { it.item.type == "profile" }
+						if (profileTyped.isNotEmpty()) {
+							var profile: List<AiAnswers.ProfileItem> = AiAnswers.parseProfile(repo.aiProfileJson.first())
+							profileTyped.forEach { entry ->
+								profile = AiAnswers.mergeProfileItem(profile, entry.topic, entry.item.question, entry.item.answer)
+							}
+							repo.setAiProfileJson(AiAnswers.profileToJson(profile))
+						}
+					}
 					Outcome.Success(yesterday.toEpochDay(), parsed != null, report.summary)
 				}
 				is AiClient.CallResult.HttpError -> {

@@ -1,8 +1,16 @@
 package com.dailycontrol.app.ui.screens
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -16,6 +24,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -25,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dailycontrol.app.R
 import com.dailycontrol.app.ai.AiClient
+import com.dailycontrol.app.ai.AiPromptBuilder
 import com.dailycontrol.app.data.settings.SettingsRepository
 import com.dailycontrol.app.schedule.AiReportPlanner
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -142,6 +152,152 @@ fun AiConfigSection() {
 			text = stringResource(R.string.ai_security_note),
 			style = MaterialTheme.typography.bodySmall,
 			color = MaterialTheme.colorScheme.onSurfaceVariant
+		)
+
+		// 提示词定制（高级）：非空保存后整体覆盖内置 system 提示词，立即影响下一次报告；
+		// 只覆盖这一层，喂给 AI 的数据组装（JSON 报文契约）不受影响
+		var promptExpanded by remember { mutableStateOf(false) }
+		Column(modifier = Modifier.fillMaxWidth()) {
+			Row(
+				modifier = Modifier.fillMaxWidth()
+					.clickable { promptExpanded = !promptExpanded }
+					.padding(vertical = 8.dp),
+				verticalAlignment = Alignment.CenterVertically
+			) {
+				Text(
+					text = stringResource(R.string.ai_prompt_custom_title),
+					style = MaterialTheme.typography.titleSmall,
+					modifier = Modifier.weight(1f)
+				)
+				Icon(
+					imageVector = if (promptExpanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
+					contentDescription = null,
+					tint = MaterialTheme.colorScheme.onSurfaceVariant
+				)
+			}
+			if (promptExpanded) {
+				PromptCustomEditor(settings = settings)
+			}
+		}
+	}
+}
+
+// 提示词编辑器：预填当前生效文本（自定义 or 内置默认）；保存即自定义、恢复默认一键清空。
+// 定制文本随备份导出（用户资产）；改坏输出约定的后果由宽容解析兜底（原文保存不丢数据）
+@Composable
+private fun PromptCustomEditor(settings: SettingsRepository) {
+	val context = LocalContext.current
+	val scope = rememberCoroutineScope()
+	val savedCustom by settings.aiCustomSystemPrompt.collectAsStateWithLifecycle(initialValue = "")
+	val defaultText = remember { AiPromptBuilder.buildFullDefaultText() }
+	var editing by remember { mutableStateOf<String?>(null) }
+	var savedHint by remember { mutableStateOf(false) }
+	var resetHint by remember { mutableStateOf(false) }
+	// 契约被改动的红色二次确认：true 时弹出警告框，确认后才真正保存
+	var contractDanger by remember { mutableStateOf(false) }
+	// 编辑框显示：正在编辑的文本 > 已存自定义 > 内置默认
+	val fieldText = editing ?: savedCustom.ifBlank { defaultText }
+
+	Text(
+		text = stringResource(R.string.ai_prompt_custom_hint),
+		style = MaterialTheme.typography.bodySmall,
+		color = MaterialTheme.colorScheme.onSurfaceVariant
+	)
+	OutlinedTextField(
+		value = fieldText,
+		onValueChange = { editing = it },
+		minLines = 6,
+		modifier = Modifier.fillMaxWidth()
+	)
+	Text(
+		text = stringResource(R.string.ai_prompt_custom_length, fieldText.length),
+		style = MaterialTheme.typography.bodySmall,
+		color = MaterialTheme.colorScheme.onSurfaceVariant
+	)
+	// 统一的真正保存动作（二次确认通过或契约未动时到达这里）
+	fun doSave(text: String) {
+		scope.launch {
+			settings.setAiCustomSystemPrompt(text.trim())
+			editing = null
+			savedHint = true
+			resetHint = false
+		}
+	}
+	Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+		Button(
+			onClick = {
+				if (AiPromptBuilder.keepsContract(fieldText)) {
+					doSave(fieldText)
+				} else {
+					// JSON 输出契约被改动：红色警告二次确认后才能保存
+					contractDanger = true
+				}
+			},
+			enabled = fieldText.isNotBlank() && fieldText.trim() != savedCustom
+		) {
+			Text(stringResource(R.string.action_save))
+		}
+		OutlinedButton(
+			onClick = {
+				scope.launch {
+					settings.setAiCustomSystemPrompt("")
+					editing = defaultText
+					resetHint = true
+					savedHint = false
+				}
+			},
+			// 已是默认时无需恢复
+			enabled = savedCustom.isNotBlank()
+		) {
+			Text(stringResource(R.string.ai_prompt_custom_reset))
+		}
+	}
+	if (savedHint) {
+		Text(
+			text = stringResource(R.string.ai_prompt_custom_saved),
+			style = MaterialTheme.typography.bodySmall,
+			color = MaterialTheme.colorScheme.primary
+		)
+	}
+	if (resetHint) {
+		Text(
+			text = stringResource(R.string.ai_prompt_custom_reset_done),
+			style = MaterialTheme.typography.bodySmall,
+			color = MaterialTheme.colorScheme.primary
+		)
+	}
+	// 红色警告二次确认：JSON 输出契约被改动时拦截保存，明确后果后才放行
+	if (contractDanger) {
+		androidx.compose.material3.AlertDialog(
+			onDismissRequest = { contractDanger = false },
+			title = {
+				Text(
+					text = stringResource(R.string.ai_prompt_danger_title),
+					color = MaterialTheme.colorScheme.error
+				)
+			},
+			text = {
+				Text(
+					text = stringResource(R.string.ai_prompt_danger_text),
+					color = MaterialTheme.colorScheme.error
+				)
+			},
+			confirmButton = {
+				TextButton(onClick = {
+					contractDanger = false
+					doSave(fieldText)
+				}) {
+					Text(
+						text = stringResource(R.string.ai_prompt_danger_confirm),
+						color = MaterialTheme.colorScheme.error
+					)
+				}
+			},
+			dismissButton = {
+				TextButton(onClick = { contractDanger = false }) {
+					Text(stringResource(R.string.action_cancel))
+				}
+			}
 		)
 	}
 }

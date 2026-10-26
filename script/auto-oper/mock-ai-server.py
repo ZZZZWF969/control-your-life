@@ -23,7 +23,7 @@ PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 18080
 # 正常场景返回的「报告内容」：符合应用约定的报告 schema（含 basis 依据字段与营养品双层建议示例）
 REPORT = {
 	"date": "2026-10-22",
-	"summary": "整体饮食结构均衡，蛋白质摄入略低于近30天常态，运动量达标。",
+	"summary": "三餐规律达标；蛋白质摄入略低；运动量达标",
 	"dietAnalysis": "三餐规律，晚餐偏晚；蔬菜来源充足，主食以精制米面为主，粗粮占比较低。营养品摄入以复合维生素与钙为主，剂量平稳。",
 	"exerciseAnalysis": "慢跑30分钟属中等强度有氧，结合近30天频率（平均每周3次）处于健康区间。",
 	"suggestions": [
@@ -50,7 +50,10 @@ class Handler(BaseHTTPRequestHandler):
 		length = int(self.headers.get("Content-Length", 0))
 		body = json.loads(self.rfile.read(length) or b"{}")
 		model = str(body.get("model", ""))
-		print("[mock] POST %s model=%s messages=%d" % (self.path, model, len(body.get("messages", []))))
+		messages = body.get("messages", [])
+		# 打印 system 消息摘要：自动化验收「自定义提示词是否真的上行」的观测点
+		system_brief = next((str(m.get("content", ""))[:60] for m in messages if m.get("role") == "system"), "")
+		print("[mock] POST %s model=%s messages=%d system[:60]=%s" % (self.path, model, len(messages), system_brief))
 		if "err401" in model:
 			return self._send_json(401, {"error": {"message": "模拟：Key 无效"}})
 		if "err402" in model:
@@ -64,6 +67,14 @@ class Handler(BaseHTTPRequestHandler):
 			return self._send_json(200, {"choices": [{"message": {"role": "assistant", "content": "迟到的响应"}}]})
 		if "badjson" in model:
 			content = "这不是JSON：抱歉，这次直接用自然语言回复了。\n建议：多吃优质蛋白，保持运动频率。"
+		elif "qa" in model:
+			# 0.4.1 追问场景：报告带 1 档案型 + 1 一次性问题
+			report = dict(REPORT)
+			report["questions"] = [
+				{"topic": "身高体重", "text": "方便的话告诉我你的身高和体重（如 175cm/70kg），便于给出更准确的摄入量建议", "type": "profile"},
+				{"topic": "昨晚睡眠", "text": "昨晚大概几点入睡、睡了几个小时？", "type": "oneoff"}
+			]
+			content = json.dumps(report, ensure_ascii=False)
 		else:
 			content = json.dumps(REPORT, ensure_ascii=False)
 		self._send_json(200, {

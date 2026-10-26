@@ -30,6 +30,16 @@
 	<string name="ai_key_visibility_show">显示</string>
 	<string name="ai_key_visibility_hide">隐藏</string>
 	<string name="ai_security_note">Key 仅保存在本机（卸载应用即清除），不随备份导出，也只发送到你在上面填写的这一个地址。</string>
+	<!-- 提示词定制（0.4.1 增量批） -->
+	<string name="ai_prompt_custom_title">提示词定制（高级）</string>
+	<string name="ai_prompt_custom_hint">下方是当前生效的完整 system 提示词（未定制时为应用默认）——它决定 AI 的角色、语气、建议导向与输出格式，改完保存，下一次报告即生效；定制内容会随备份导出。其中「输出要求」的 JSON 格式约定是应用拆解报告的依据：改动它会在保存时弹出红色警告并要求二次确认，改坏后果为报告无法拆解成板块（按原文保存，数据不丢），点「恢复默认」可随时还原。</string>
+	<string name="ai_prompt_danger_title">警告：JSON 输出格式约定被修改</string>
+	<string name="ai_prompt_danger_text">检测到你改动或删除了「输出要求」的 JSON 格式约定。应用依赖这些约定拆解 AI 的返回——修改后 AI 的回复可能无法解析成报告板块，将降级为纯文本保存（数据不丢，但排版与建议卡片全部丢失），且属于未知风险。确定要这样保存吗？</string>
+	<string name="ai_prompt_danger_confirm">仍要保存</string>
+	<string name="ai_prompt_custom_length">当前长度：%1$d 字</string>
+	<string name="ai_prompt_custom_reset">恢复默认</string>
+	<string name="ai_prompt_custom_saved">已保存，下一次生成报告时生效</string>
+	<string name="ai_prompt_custom_reset_done">已恢复应用默认提示词</string>
 
 	<!-- AI 页（0.4.0 第四阶段） -->
 	<string name="ai_unconfigured_title">AI 生活建议还没配置</string>
@@ -55,12 +65,37 @@
 	<string name="ai_section_diet">饮食分析</string>
 	<string name="ai_section_exercise">运动分析</string>
 	<string name="ai_section_suggestions">建议</string>
+	<string name="ai_section_analysis">分析</string>
+	<string name="ai_section_dialog_log">对话记录</string>
+	<string name="ai_analysis_diet_sub">饮食</string>
+	<string name="ai_analysis_exercise_sub">运动</string>
 	<string name="ai_suggestion_basis_label">依据：%1$s</string>
 	<string name="ai_suggestion_expand">展开详情</string>
 	<string name="ai_suggestion_collapse">收起</string>
 	<string name="ai_raw_response">原始返回（AI 回复原文）</string>
 	<string name="ai_sent_payload">本次发送的数据（隐私自查）</string>
 	<string name="ai_raw_parse_bad_hint">本次 AI 返回未按约定 JSON 格式，无法拆解成板块，以下为原文（数据未丢失；可返回列表重新生成）：</string>
+
+	<!-- AI 追问机制（0.4.1） -->
+	<string name="ai_qa_banner_title">AI 想问你 %1$d 个问题</string>
+	<string name="ai_qa_banner_hint">顺手答完，明天的报告更懂你</string>
+	<string name="ai_qa_section_title">追问</string>
+	<string name="ai_qa_type_profile">档案型</string>
+	<string name="ai_qa_type_oneoff">一次性</string>
+	<string name="ai_qa_answer_hint">写下你的回答</string>
+	<string name="ai_qa_answer_save">保存答案</string>
+	<string name="ai_qa_answer_cancel">取消</string>
+	<string name="ai_qa_answer_edit">修改</string>
+	<string name="ai_qa_answer_delete">删除</string>
+	<string name="ai_qa_status_pending">待随下次报告提交</string>
+	<string name="ai_qa_status_submitted">已随 %1$s 的报告提交</string>
+	<string name="ai_profile_entry">档案</string>
+	<string name="ai_profile_title">个人档案</string>
+	<string name="ai_profile_empty">还没有档案信息：AI 的档案型问题（如身高体重）答过一次后，答案会存在这里并随每次报告携带</string>
+	<string name="ai_profile_updated_at">更新于 %1$s</string>
+	<string name="ai_history_entry">历史</string>
+	<string name="ai_history_title">问答历史</string>
+	<string name="ai_history_empty">还没有回答过 AI 的问题；报告详情里的「AI 的追问」答过之后会记录在这里</string>
 	<string name="ai_debug_rewind_watermark">AI调试：水位线回拨3天</string>
 	<string name="ai_debug_rewind_watermark_done">已回拨，下次生成将走「补交回顾」模式</string>
 	<string name="ai_debug_seed_old_report">AI调试：灌一条20天前旧报告</string>
@@ -200,6 +235,8 @@
 	<string name="theme_mode_dark">深色</string>
 	<string name="settings_section_debug">调试工具</string>
 	<string name="settings_replay_onboarding">重新查看权限引导</string>
+	<!-- 设置主页分组行的状态摘要（2026-10-26 分组化重构；提醒时间与跳转应用不展示摘要，保持行简洁） -->
+	<string name="settings_summary_ai_configured">已配置 ✓</string>
 
 	<!-- 首启权限引导向导（2026-10-19 批次4） -->
 	<string name="onboarding_title">首次设置</string>

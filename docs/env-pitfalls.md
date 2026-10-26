@@ -139,6 +139,7 @@
 - **症状**：真机（HyperOS 2 / Android 15）已授权 USB 调试，`adb shell input tap/swipe/keyevent` 全部抛 `SecurityException: Injecting input events requires ... INJECT_EVENTS`；锁屏状态下同样被拒。读操作（screencap / uiautomator dump / install / logcat）不受影响。
 - **原因**：MIUI/HyperOS 把输入注入划入「USB 调试（安全设置）」的额外授权，需登录小米账号并在开发者选项单独开启；普通 USB 调试只放行只读与安装类操作。
 - **规避**：真机验收/走查不必去开「安全设置」——改用**分工模式**：用户手动操作手机，adb 只做只读核验（截图 + uiautomator dump 断言界面文本 + logcat 验证接收器触发）。需要全自动 UI 驱动的场景留给无界面模拟器（不受此限制）。
+- **补充（2026-10-26）**：① 真机 adb 操作前先请用户插线（拔线后命令静默空跑或 unauthorized，浪费排查时间）；② 偶发 `unauthorized`（此前已授权过）：手机会重新弹「允许 USB 调试」确认框，勾「一律允许」再允许即恢复——adb 服务重启/换 USB 口/手机重启都可能触发重确认，属正常现象。
 
 ## 25. cmd 批处理含中文 UTF-8 会被 GBK 双字节配对撕碎（2026-10-24 自检脚本实测）
 

@@ -33,4 +33,14 @@ interface AiReportDao {
 	// 调试与测试灌数用
 	@Query("DELETE FROM ai_report")
 	suspend fun clearAll()
+
+	// ===== 0.4.1 追问机制 =====
+
+	// 全表一次性读取：生成前收集「已答未提交」的追问答案（表只有 14 天窗口，数据量极小）
+	@Query("SELECT * FROM ai_report")
+	suspend fun getAllOnce(): List<AiReport>
+
+	// 追问作答保存（界面层调用；只更新答案列，报告其余字段不动）
+	@Query("UPDATE ai_report SET answersJson = :answersJson WHERE id = :id")
+	suspend fun updateAnswers(id: Long, answersJson: String)
 }

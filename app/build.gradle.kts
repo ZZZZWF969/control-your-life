@@ -12,8 +12,8 @@ android {
 		applicationId = "com.dailycontrol.app"
 		minSdk = 35
 		targetSdk = 37
-		versionCode = 8
-		versionName = "0.4.0"
+		versionCode = 9
+		versionName = "0.4.1"
 	}
 
 	buildTypes {
