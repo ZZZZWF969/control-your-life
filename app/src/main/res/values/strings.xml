@@ -225,6 +225,8 @@
 	<string name="theme_mode_dark">深色</string>
 	<string name="settings_section_debug">调试工具</string>
 	<string name="settings_replay_onboarding">重新查看权限引导</string>
+	<!-- 设置主页分组行的状态摘要（2026-10-26 分组化重构；提醒时间与跳转应用不展示摘要，保持行简洁） -->
+	<string name="settings_summary_ai_configured">已配置 ✓</string>
 
 	<!-- 首启权限引导向导（2026-10-19 批次4） -->
 	<string name="onboarding_title">首次设置</string>

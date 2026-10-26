@@ -38,6 +38,11 @@ object TimeUtil {
 		return Instant.ofEpochMilli(epochMillis).atZone(zone).format(timeFormat)
 	}
 
+	// 「当日分钟数」（如 570 = 9:30）转 HH:mm 展示：设置页的分组摘要与时间行共用
+	fun formatMinuteOfDay(minuteOfDay: Int): String {
+		return LocalTime.of(minuteOfDay / 60, minuteOfDay % 60).format(timeFormat)
+	}
+
 	fun formatDate(date: LocalDate): String {
 		return date.format(dateFormat)
 	}
